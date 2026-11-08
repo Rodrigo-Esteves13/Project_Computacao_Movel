@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="favorites_title">Favorites</string>
+    <string name="favorites_add">Add</string>
+    <string name="favorites_error_invalid">Enter a valid domain or IPv4 address.</string>
+    <string name="favorites_recheck">Re-check all</string>
+    <string name="favorites_progress">Re-checking %1$d of %2$d: %3$s</string>
+    <string name="favorites_progress_start">Re-checking…</string>
+    <string name="favorites_changed">Changed since the last check</string>
+    <string name="favorites_score_change">Score: %1$d → %2$d</string>
+    <string name="favorites_remove">Remove from favorites</string>
+    <string name="favorites_empty">You have no favorites yet. Add a domain or IP above, or use the star on the result screen.</string>
+</resources>

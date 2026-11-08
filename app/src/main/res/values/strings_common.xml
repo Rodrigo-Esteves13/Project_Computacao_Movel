@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="state_ok">Good</string>
+    <string name="state_warning">Warning</string>
+    <string name="state_fail">Critical</string>
+    <string name="state_unavailable">Unavailable</string>
+    <string name="score_good">Good</string>
+    <string name="score_warning">Warning</string>
+    <string name="score_critical">Critical</string>
+    <string name="search_label">Domain or IP</string>
+    <string name="back">Back</string>
+    <string name="score_analyzing">Analyzing…</string>
+</resources>

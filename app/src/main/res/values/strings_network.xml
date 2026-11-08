@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="network_title">My network</string>
+    <string name="network_description">Find out the public IP address of your connection and whether it has open ports or known vulnerabilities associated with it. Uses public data only.</string>
+    <string name="network_button">Check my network</string>
+    <string name="network_button_retry">Try again</string>
+    <string name="network_checking">Checking…</string>
+    <string name="network_ip">Public IP</string>
+    <string name="network_connection">Connection type</string>
+    <string name="network_ports">Exposed ports</string>
+    <string name="network_no_ports">No known ports</string>
+    <string name="network_cves">Known vulnerabilities (CVE)</string>
+    <string name="network_no_cves">None</string>
+
+</resources>

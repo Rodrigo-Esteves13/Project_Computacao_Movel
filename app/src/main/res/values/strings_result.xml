@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="result_favorite_add">Add to favorites</string>
+    <string name="result_favorite_remove">Remove from favorites</string>
+    <string name="result_share">Share report</string>
+    <string name="result_reanalyze">Re-analyze</string>
+    <string name="result_cache">Cached result (analysis less than 10 minutes old). Re-analyze to get fresh data.</string>
+    <string name="result_notice">A high score does not guarantee that a site is legitimate.</string>
+    <string name="result_try_again">Try again</string>
+    <string name="result_not_found">Analysis not found.</string>
+</resources>

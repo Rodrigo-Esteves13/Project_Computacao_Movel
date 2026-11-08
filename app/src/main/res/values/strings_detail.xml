@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="detail_screen_title">Details</string>
+    <string name="detail_points">Points: %1$d of %2$d</string>
+    <string name="detail_not_found">Check not found.</string>
+</resources>

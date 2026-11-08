@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="error_no_internet">No internet connection. Check your connection and try again.</string>
+    <string name="error_domain">Domain not found.</string>
+    <string name="error_rate_limit">Too many requests. Try again shortly.</string>
+    <string name="error_invalid">Invalid input. Check the domain or IP.</string>
+    <string name="error_generic">Something went wrong. Please try again.</string>
+</resources>

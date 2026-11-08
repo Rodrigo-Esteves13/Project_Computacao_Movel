@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="history_title">History</string>
+    <string name="history_empty">You have not run any analysis yet. Your analyses will appear here.</string>
+    <string name="history_delete_one">Delete this analysis</string>
+    <string name="history_delete_all">Delete all history</string>
+    <string name="history_dialog_title">Delete all history?</string>
+    <string name="history_dialog_text">All analyses stored on this device will be deleted. This action cannot be undone.</string>
+    <string name="history_dialog_confirm">Delete all</string>
+    <string name="history_dialog_cancel">Cancel</string>
+</resources>

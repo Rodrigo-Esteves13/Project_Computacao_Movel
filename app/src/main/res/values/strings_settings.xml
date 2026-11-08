@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_title">Settings</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_system">Follow system</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_timeout">Request timeout</string>
+    <string name="settings_timeout_value">%1$d seconds</string>
+    <string name="settings_about">About and privacy</string>
+
+    <string name="settings_about_passive_title">Passive reconnaissance only</string>
+    <string name="settings_about_passive_text">Farol only queries public information. It does not scan ports or try to access third-party systems. The requests made to the analyzed site are the same ones any browser would make.</string>
+
+    <string name="settings_about_third_parties_title">Who receives your searches</string>
+    <string name="settings_about_third_parties_text">To get the data, your searches are sent to external services: Google DNS sees the domains queried, Shodan InternetDB sees the IP addresses, and RDAP registries see the domain or IP whose ownership is looked up. With the My network option, the ipify service sees your public IP. The analyzed site also receives the connection request.</string>
+
+    <string name="settings_about_data_title">Your data stays with you</string>
+    <string name="settings_about_data_text">History and favorites are stored only on this device and you can delete them whenever you want. The app has no server of its own, no accounts and no analytics. All requests use HTTPS.</string>
+
+    <string name="settings_about_limits_title">Limitations</string>
+    <string name="settings_about_limits_text">A high score does not guarantee that a site is legitimate: a scam site can have a valid certificate. External databases may be out of date, and the absence of open ports or known vulnerabilities does not mean they do not exist. Use Farol as decision support, not as a verdict.</string>
+</resources>
