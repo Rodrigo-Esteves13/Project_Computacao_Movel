@@ -1,0 +1,14 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- beam -->
+    <path android:fillColor="#59FFB300" android:pathData="M54,34 L100,18 L100,50 Z" />
+    <path android:fillColor="#59FFB300" android:pathData="M54,34 L8,18 L8,50 Z" />
+    <!-- tower -->
+    <path android:fillColor="#F1F5F9" android:pathData="M44,86 L48,44 L60,44 L64,86 Z" />
+    <path android:fillColor="#EF4444" android:pathData="M46,70 L47,58 L61,58 L62,70 Z" />
+    <!-- lantern -->
+    <path android:fillColor="#FFB300" android:pathData="M48,44 L48,34 L60,34 L60,44 Z" />
+    <path android:fillColor="#94A3B8" android:pathData="M46,34 L54,26 L62,34 Z" />
+    <path android:fillColor="#94A3B8" android:pathData="M40,86 L68,86 L68,90 L40,90 Z" />
+</vector>

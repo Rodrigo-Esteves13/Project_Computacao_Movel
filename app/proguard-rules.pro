@@ -1,0 +1,4 @@
+-keep class pt.ismai.farol.data.remote.dto.** { *; }
+-keep class pt.ismai.farol.domain.model.** { *; }
+-keepattributes Signature
+-keepattributes *Annotation*
