@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="data_reason_timeout">The check took too long.</string>
+    <string name="data_reason_error">This check could not be completed.</string>
+    <string name="data_reason_no_dns">The DNS records could not be queried.</string>
+    <string name="data_mx_with">Mail servers (MX): %1$s.</string>
+    <string name="data_mx_none">No MX records: this domain does not seem to receive email.</string>
+</resources>
