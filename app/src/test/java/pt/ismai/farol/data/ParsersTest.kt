@@ -3,11 +3,15 @@ package pt.ismai.farol.data
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import java.time.Instant
 import org.junit.Test
+import pt.ismai.farol.data.remote.describeError
 import pt.ismai.farol.data.remote.dto.DnsRecord
 import pt.ismai.farol.data.remote.dto.DnsResponse
+import pt.ismai.farol.data.repository.daysRemaining
 import pt.ismai.farol.data.repository.firstIpv4
 import pt.ismai.farol.data.repository.hostHierarchy
+import pt.ismai.farol.data.repository.issuerName
 import pt.ismai.farol.data.repository.mxServers
 import pt.ismai.farol.data.repository.txtWithPrefix
 
@@ -54,5 +58,33 @@ class ParsersTest {
         ))
         assertEquals(listOf("aspmx.l.google.com", "alt1.aspmx.l.google.com"), mxServers(r))
         assertTrue(mxServers(null).isEmpty())
+    }
+
+    @Test fun daysRemaining_negativeIfExpired() {
+        val now = Instant.parse("2025-01-11T00:00:00Z")
+        assertEquals(5L, daysRemaining(Instant.parse("2025-01-16T00:00:00Z"), now))
+        assertEquals(-3L, daysRemaining(Instant.parse("2025-01-08T00:00:00Z"), now))
+        assertNull(daysRemaining(null, now))
+    }
+
+    @Test fun issuerName_prefersOrganizationThenCn() {
+        assertEquals("Google Trust Services", issuerName("CN=WR2,O=Google Trust Services,C=US"))
+        assertEquals("R3", issuerName("CN=R3,C=US"))
+        assertEquals("text", issuerName("text"))
+        assertNull(issuerName(null))
+    }
+
+    @Test fun describeError_joinsWholeChain() {
+        val error = javax.net.ssl.SSLHandshakeException("Chain validation failed")
+            .apply { initCause(java.security.cert.CertificateExpiredException("NotAfter: 2020")) }
+        val text = describeError(error)
+        assertTrue(text.contains("SSLHandshakeException"))
+        assertTrue(text.contains("Chain validation failed"))
+        assertTrue(text.contains("CertificateExpiredException"))
+        assertTrue(text.contains("NotAfter: 2020"))
+    }
+
+    @Test fun describeError_noMessageAndNoRepeats() {
+        assertEquals("IOException", describeError(java.io.IOException()))
     }
 }

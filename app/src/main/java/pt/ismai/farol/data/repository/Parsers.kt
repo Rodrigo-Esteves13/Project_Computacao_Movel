@@ -1,5 +1,7 @@
 package pt.ismai.farol.data.repository
 
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import pt.ismai.farol.data.remote.dto.DnsResponse
 import pt.ismai.farol.domain.cleanTxt
 import pt.ismai.farol.domain.model.AnalysisResult
@@ -13,6 +15,8 @@ private const val DNS_TYPE_MX = 15
 private const val DNS_TYPE_TXT = 16
 private const val MAX_OCTET = 255
 private const val MIN_LABELS = 2
+private val REGEX_ORG = Regex("""(?:^|,)\s*O=([^,]+)""")
+private val REGEX_CN = Regex("""(?:^|,)\s*CN=([^,]+)""")
 private val REGEX_IPV4 = Regex("""^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$""")
 
 fun firstIpv4(response: DnsResponse?): String? =
@@ -48,6 +52,17 @@ fun mxServers(response: DnsResponse?): List<String> =
         .mapNotNull { it.data?.trim()?.substringAfterLast(' ')?.trimEnd('.')?.lowercase() }
         .filter { it.isNotEmpty() }
         .distinct()
+
+/** Days until expiry (negative if already expired); null without a date. */
+fun daysRemaining(expiresAt: Instant?, now: Instant): Long? =
+    expiresAt?.let { ChronoUnit.DAYS.between(now, it) }
+
+/** Readable issuer name from the DN ("CN=R3,O=Lets Encrypt,C=US" -> "Lets Encrypt"). */
+fun issuerName(dn: String?): String? {
+    if (dn.isNullOrBlank()) return null
+    val name = REGEX_ORG.find(dn)?.groupValues?.get(1) ?: REGEX_CN.find(dn)?.groupValues?.get(1)
+    return (name ?: dn).trim()
+}
 
 /** true if the score or the status of any check changed compared to the previous analysis. */
 fun resultChanged(previous: AnalysisResult?, latest: AnalysisResult): Boolean {

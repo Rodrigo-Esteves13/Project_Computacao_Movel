@@ -4,6 +4,8 @@ import android.content.Context
 import pt.ismai.farol.data.fake.FakeSettingsRepository
 import pt.ismai.farol.data.remote.ConfigurableTimeout
 import pt.ismai.farol.data.remote.DnsApi
+import pt.ismai.farol.data.remote.HttpChecker
+import pt.ismai.farol.data.remote.InternetDbApi
 import pt.ismai.farol.data.remote.createApi
 import pt.ismai.farol.data.remote.createOkHttp
 import pt.ismai.farol.data.repository.AnalysisRepositoryImpl
@@ -26,7 +28,12 @@ class AppContainer(context: Context) {
     val analysisRepository: AnalysisRepository by lazy {
         val texts = DataTexts(appContext)
         AnalysisRepositoryImpl(
-            checkers = Checkers(dns = createApi<DnsApi>(okHttp, DnsApi.BASE_URL), texts = texts),
+            checkers = Checkers(
+                dns = createApi<DnsApi>(okHttp, DnsApi.BASE_URL),
+                internetDb = createApi<InternetDbApi>(okHttp, InternetDbApi.BASE_URL),
+                http = HttpChecker(okHttp),
+                texts = texts,
+            ),
             connectivity = Connectivity(appContext),
             texts = texts,
             store = InMemoryAnalysisStore(),

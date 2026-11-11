@@ -58,7 +58,7 @@ internal class AnalysisRepositoryImpl(
         if (!connectivity.hasInternet()) throw FarolException(ErrorType.NO_INTERNET)
         val tasks = when (target.type) {
             TargetType.DOMAIN -> domainTasks(target.value)
-            TargetType.IP -> ipTasks()
+            TargetType.IP -> ipTasks(target.value)
         }
         execute(target, tasks)
     }.flowOn(Dispatchers.IO)
@@ -74,14 +74,18 @@ internal class AnalysisRepositoryImpl(
 
     private suspend fun domainTasks(domain: String): List<Task> {
         // Resolving first makes a missing domain abort the whole analysis (DOMAIN_NOT_FOUND).
-        checkers.resolveIpv4(domain)
+        val ip = checkers.resolveIpv4(domain)
         return listOf(
+            Task(listOf(CheckId.CERTIFICATE, CheckId.HEADERS)) { checkers.certificateAndHeaders(domain) },
             Task(listOf(CheckId.EMAIL)) { listOf(checkers.email(domain)) },
+            Task(listOf(CheckId.EXPOSURE)) { listOf(checkers.exposure(ip)) },
         )
     }
 
-    /** IP checks arrive with the exposure and RDAP phases. */
-    private fun ipTasks(): List<Task> = emptyList()
+    /** The IP owner check arrives with the RDAP phase. */
+    private fun ipTasks(ip: String): List<Task> = listOf(
+        Task(listOf(CheckId.EXPOSURE)) { listOf(checkers.exposure(ip)) },
+    )
 
     /** Runs the tasks in parallel, emitting progress on each completion; saves at the end. */
     private suspend fun ProducerScope<AnalysisProgress>.execute(target: Target, tasks: List<Task>) {
