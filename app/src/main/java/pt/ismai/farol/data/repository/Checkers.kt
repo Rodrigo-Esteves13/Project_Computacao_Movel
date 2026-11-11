@@ -10,11 +10,14 @@ import kotlinx.coroutines.coroutineScope
 import pt.ismai.farol.data.remote.DnsApi
 import pt.ismai.farol.data.remote.HttpChecker
 import pt.ismai.farol.data.remote.InternetDbApi
+import pt.ismai.farol.data.remote.RdapApi
 import pt.ismai.farol.domain.Checks
+import pt.ismai.farol.domain.evaluators.AgeEvaluator
 import pt.ismai.farol.domain.evaluators.CertificateEvaluator
 import pt.ismai.farol.domain.evaluators.EmailEvaluator
 import pt.ismai.farol.domain.evaluators.ExposureEvaluator
 import pt.ismai.farol.domain.evaluators.HeadersEvaluator
+import pt.ismai.farol.domain.evaluators.IpOwnerEvaluator
 import pt.ismai.farol.domain.model.Check
 import pt.ismai.farol.domain.model.CheckId
 import pt.ismai.farol.domain.model.ErrorType
@@ -39,6 +42,7 @@ internal fun <T> Response<T>.bodyOrNull(): T? {
 internal class Checkers(
     private val dns: DnsApi,
     private val internetDb: InternetDbApi,
+    private val rdap: RdapApi,
     private val http: HttpChecker,
     private val texts: DataTexts,
     private val now: () -> Instant = Instant::now,
@@ -82,6 +86,36 @@ internal class Checkers(
         CertificateEvaluator.evaluate(false, null, null, texts.noHttps),
         Checks.unavailable(CheckId.HEADERS, texts.noHeaders),
     )
+
+    /**
+     * RDAP only knows the registrable domain: on 404 it goes up one label (up to 2 levels).
+     * Final 404, 429 or no date -> UNAVAILABLE.
+     */
+    suspend fun age(domain: String): Check {
+        val days = try {
+            hostHierarchy(domain).firstNotNullOfOrNull { host ->
+                rdap.domain(host).bodyOrNull()?.let { daysSinceRegistration(it.events, now()) }
+            }
+        } catch (e: FarolException) {
+            null
+        }
+        return if (days == null) {
+            Checks.unavailable(CheckId.AGE, texts.noRdap)
+        } else {
+            AgeEvaluator.evaluate(days)
+        }
+    }
+
+    /** Owner = RDAP registrant (vcard fn/org); if none, the network name. */
+    suspend fun ipOwner(ip: String): Check {
+        val rdapData = try {
+            rdap.ip(ip).bodyOrNull()
+        } catch (e: FarolException) {
+            null
+        }
+        val name = registrantName(rdapData?.entities) ?: rdapData?.name
+        return IpOwnerEvaluator.evaluate(name, rdapData?.country)
+    }
 
     /**
      * SPF and DMARC (looked up on the host and its parent domains) + informational MX in the detail.

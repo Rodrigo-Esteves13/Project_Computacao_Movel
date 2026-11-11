@@ -1,8 +1,14 @@
 package pt.ismai.farol.data.repository
 
+import com.google.gson.JsonArray
 import java.time.Instant
+import java.time.LocalDate
+import java.time.OffsetDateTime
+import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import pt.ismai.farol.data.remote.dto.DnsResponse
+import pt.ismai.farol.data.remote.dto.RdapEntity
+import pt.ismai.farol.data.remote.dto.RdapEvent
 import pt.ismai.farol.domain.cleanTxt
 import pt.ismai.farol.domain.model.AnalysisResult
 import pt.ismai.farol.domain.model.Check
@@ -52,6 +58,60 @@ fun mxServers(response: DnsResponse?): List<String> =
         .mapNotNull { it.data?.trim()?.substringAfterLast(' ')?.trimEnd('.')?.lowercase() }
         .filter { it.isNotEmpty() }
         .distinct()
+
+private const val REGISTRATION_ACTION = "registration"
+private const val ISO_DATE_LENGTH = 10
+private const val ROLE_REGISTRANT = "registrant"
+private const val POS_PROPERTIES = 1
+private const val POS_VALUE = 3
+
+/** Whole days since the oldest "registration" event; null if missing or unreadable. */
+fun daysSinceRegistration(events: List<RdapEvent>?, now: Instant): Long? {
+    val registeredAt = events.orEmpty()
+        .filter { it.eventAction.equals(REGISTRATION_ACTION, ignoreCase = true) }
+        .mapNotNull { parseDate(it.eventDate) }
+        .minOrNull() ?: return null
+    return ChronoUnit.DAYS.between(registeredAt, now).coerceAtLeast(0)
+}
+
+private fun parseDate(text: String?): Instant? {
+    if (text.isNullOrBlank()) return null
+    return runCatching { Instant.parse(text) }.getOrNull()
+        ?: runCatching { OffsetDateTime.parse(text).toInstant() }.getOrNull()
+        ?: runCatching {
+            LocalDate.parse(text.take(ISO_DATE_LENGTH)).atStartOfDay(ZoneOffset.UTC).toInstant()
+        }.getOrNull()
+}
+
+/** Registrant name (vcard fn, otherwise org) in a list of RDAP entities, searched depth-first. */
+fun registrantName(entities: List<RdapEntity>?): String? {
+    for (e in entities.orEmpty()) {
+        val isRegistrant = e.roles.orEmpty().any { it.equals(ROLE_REGISTRANT, ignoreCase = true) }
+        val name = if (isRegistrant) vcardValue(e.vcardArray, "fn") ?: vcardValue(e.vcardArray, "org") else null
+        val result = name ?: registrantName(e.entities)
+        if (result != null) return result
+    }
+    return null
+}
+
+/** Text value of a jCard field; accepts a plain value or a list (uses the first text). */
+fun vcardValue(vcard: JsonArray?, field: String): String? {
+    val properties = vcard?.takeIf { it.size() > POS_PROPERTIES }?.get(POS_PROPERTIES)
+        ?.takeIf { it.isJsonArray }?.asJsonArray ?: return null
+    for (p in properties) {
+        if (!p.isJsonArray) continue
+        val arr = p.asJsonArray
+        if (arr.size() <= POS_VALUE || arr[0].asString != field) continue
+        val v = arr[POS_VALUE]
+        val text = if (v.isJsonArray) {
+            v.asJsonArray.firstOrNull { it.isJsonPrimitive }?.asString
+        } else {
+            v.takeIf { it.isJsonPrimitive }?.asString
+        }
+        if (!text.isNullOrBlank()) return text.trim()
+    }
+    return null
+}
 
 /** Days until expiry (negative if already expired); null without a date. */
 fun daysRemaining(expiresAt: Instant?, now: Instant): Long? =

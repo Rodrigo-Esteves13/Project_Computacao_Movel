@@ -77,14 +77,15 @@ internal class AnalysisRepositoryImpl(
         val ip = checkers.resolveIpv4(domain)
         return listOf(
             Task(listOf(CheckId.CERTIFICATE, CheckId.HEADERS)) { checkers.certificateAndHeaders(domain) },
+            Task(listOf(CheckId.AGE)) { listOf(checkers.age(domain)) },
             Task(listOf(CheckId.EMAIL)) { listOf(checkers.email(domain)) },
             Task(listOf(CheckId.EXPOSURE)) { listOf(checkers.exposure(ip)) },
         )
     }
 
-    /** The IP owner check arrives with the RDAP phase. */
     private fun ipTasks(ip: String): List<Task> = listOf(
         Task(listOf(CheckId.EXPOSURE)) { listOf(checkers.exposure(ip)) },
+        Task(listOf(CheckId.IP_OWNER)) { listOf(checkers.ipOwner(ip)) },
     )
 
     /** Runs the tasks in parallel, emitting progress on each completion; saves at the end. */
