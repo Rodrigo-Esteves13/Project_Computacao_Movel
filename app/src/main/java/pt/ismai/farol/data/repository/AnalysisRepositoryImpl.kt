@@ -17,10 +17,12 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import pt.ismai.farol.domain.AnalysisRepository
 import pt.ismai.farol.domain.Checks
 import pt.ismai.farol.domain.ScoreCalculator
 import pt.ismai.farol.domain.TargetNormalizer
+import pt.ismai.farol.domain.evaluators.ExposureEvaluator
 import pt.ismai.farol.domain.model.AnalysisProgress
 import pt.ismai.farol.domain.model.AnalysisResult
 import pt.ismai.farol.domain.model.AnalysisSummary
@@ -198,8 +200,13 @@ internal class AnalysisRepositoryImpl(
         }
     }
 
-    /** Arrives with the public IP phase. */
-    override suspend fun myNetwork(): NetworkResult = throw FarolException(ErrorType.UNKNOWN)
+    /** Public IP (ipify) + exposure (InternetDB). Unlike an analysis, a failed lookup aborts the screen. */
+    override suspend fun myNetwork(): NetworkResult = withContext(Dispatchers.IO) {
+        if (!connectivity.hasInternet()) throw FarolException(ErrorType.NO_INTERNET)
+        val ip = checkers.publicIp()
+        val (ports, cves) = checkers.portsAndCves(ip)
+        NetworkResult(ip, connectivity.connectionType(), ports, cves, ExposureEvaluator.evaluate(ports, cves))
+    }
 
     private fun latestFor(all: List<AnalysisResult>, target: String): AnalysisResult? =
         all.filter { it.target == target }.maxByOrNull { it.date }

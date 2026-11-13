@@ -6,6 +6,7 @@ import pt.ismai.farol.data.remote.ConfigurableTimeout
 import pt.ismai.farol.data.remote.DnsApi
 import pt.ismai.farol.data.remote.HttpChecker
 import pt.ismai.farol.data.remote.InternetDbApi
+import pt.ismai.farol.data.remote.IpifyApi
 import pt.ismai.farol.data.remote.RdapApi
 import pt.ismai.farol.data.remote.createApi
 import pt.ismai.farol.data.remote.createOkHttp
@@ -32,6 +33,7 @@ class AppContainer(context: Context) {
             checkers = Checkers(
                 dns = createApi<DnsApi>(okHttp, DnsApi.BASE_URL),
                 internetDb = createApi<InternetDbApi>(okHttp, InternetDbApi.BASE_URL),
+                ipify = createApi<IpifyApi>(okHttp, IpifyApi.BASE_URL),
                 rdap = createApi<RdapApi>(okHttp, RdapApi.BASE_URL),
                 http = HttpChecker(okHttp),
                 texts = texts,

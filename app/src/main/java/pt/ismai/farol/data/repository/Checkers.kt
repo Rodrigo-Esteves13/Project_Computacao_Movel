@@ -10,6 +10,7 @@ import kotlinx.coroutines.coroutineScope
 import pt.ismai.farol.data.remote.DnsApi
 import pt.ismai.farol.data.remote.HttpChecker
 import pt.ismai.farol.data.remote.InternetDbApi
+import pt.ismai.farol.data.remote.IpifyApi
 import pt.ismai.farol.data.remote.RdapApi
 import pt.ismai.farol.domain.Checks
 import pt.ismai.farol.domain.evaluators.AgeEvaluator
@@ -42,6 +43,7 @@ internal fun <T> Response<T>.bodyOrNull(): T? {
 internal class Checkers(
     private val dns: DnsApi,
     private val internetDb: InternetDbApi,
+    private val ipify: IpifyApi,
     private val rdap: RdapApi,
     private val http: HttpChecker,
     private val texts: DataTexts,
@@ -53,6 +55,12 @@ internal class Checkers(
             ?: throw FarolException(ErrorType.UNKNOWN)
         if (response.status == DNS_NXDOMAIN) throw FarolException(ErrorType.DOMAIN_NOT_FOUND)
         return firstIpv4(response)
+    }
+
+    /** The device's public IPv4 as seen from the internet. */
+    suspend fun publicIp(): String {
+        val ip = mapNetworkErrors { ipify.myIp().bodyOrNull()?.ip }
+        return ip ?: throw FarolException(ErrorType.UNKNOWN)
     }
 
     /** A single HTTPS request -> [Certificate, Headers]. */
