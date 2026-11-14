@@ -9,3 +9,6 @@
 .externalNativeBuild
 .cxx
 *.apk
+
+# Firebase client config (contains the project API key; each machine downloads its own, see README)
+/app/google-services.json
