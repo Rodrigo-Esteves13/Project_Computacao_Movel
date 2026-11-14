@@ -9,13 +9,20 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -25,7 +32,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import pt.ismai.farol.AppContainer
 import pt.ismai.farol.R
+import pt.ismai.farol.domain.AuthSession
 import pt.ismai.farol.domain.model.ThemePref
+import pt.ismai.farol.ui.screens.auth.messageRes
 import pt.ismai.farol.ui.screens.common.BackTopBar
 
 private data class AboutSection(@StringRes val title: Int, @StringRes val text: Int)
@@ -57,6 +66,9 @@ fun SettingsScreen(container: AppContainer, onBack: () -> Unit) {
                 val ready = state as SettingsUiState.Ready
                 ThemeSection(ready.theme, vm::chooseTheme)
                 TimeoutSection(ready.timeoutSeconds, vm::chooseTimeout)
+                (ready.session as? AuthSession.SignedIn)?.let {
+                    AccountSection(it.user.email.orEmpty(), vm)
+                }
             }
             AboutPrivacy()
         }
@@ -78,6 +90,36 @@ private fun TimeoutSection(current: Int, onChoose: (Int) -> Unit) {
         RadioOption(stringResource(R.string.settings_timeout_value, seconds), seconds == current) {
             onChoose(seconds)
         }
+    }
+}
+
+@Composable
+private fun AccountSection(email: String, vm: SettingsViewModel) {
+    var confirming by remember { mutableStateOf(false) }
+    val error by vm.accountError.collectAsStateWithLifecycle()
+    SectionTitle(R.string.settings_account)
+    Text(stringResource(R.string.settings_account_email, email), style = MaterialTheme.typography.bodyMedium)
+    error?.let { Text(stringResource(it.messageRes()), color = MaterialTheme.colorScheme.error) }
+    OutlinedButton(onClick = vm::signOut, modifier = Modifier.fillMaxWidth()) {
+        Text(stringResource(R.string.settings_sign_out))
+    }
+    Button(onClick = { vm.dismissAccountError(); confirming = true }, modifier = Modifier.fillMaxWidth()) {
+        Text(stringResource(R.string.settings_delete_account))
+    }
+    if (confirming) {
+        AlertDialog(
+            onDismissRequest = { confirming = false },
+            title = { Text(stringResource(R.string.settings_delete_title)) },
+            text = { Text(stringResource(R.string.settings_delete_text)) },
+            confirmButton = {
+                TextButton(onClick = { confirming = false; vm.deleteAccount() }) {
+                    Text(stringResource(R.string.settings_delete_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirming = false }) { Text(stringResource(R.string.settings_delete_cancel)) }
+            },
+        )
     }
 }
 

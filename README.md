@@ -37,8 +37,12 @@ Debug APK: `./gradlew :app:assembleDebug` (output in `app/build/outputs/apk/debu
 ## Privacy and ethics
 - Passive reconnaissance only (Portuguese Law no. 109/2009, art. 6): the app reads public data and does not probe third-party systems.
 - Searched targets are sent to third parties: Google (DNS), Shodan (InternetDB), RDAP registries and ipify. The app has no server of its own.
+- Accounts (email and password) are handled by Firebase Authentication; the account can be deleted in Settings.
 - History and favorites currently live in memory on the device only and can be deleted at any time (this section is updated when cloud sync is added).
 - A high score does not guarantee that a site is legitimate.
 
 ## Architecture
 MVVM + Repository, manual dependency injection (`AppContainer`). Checks run in parallel; the score and evaluation logic lives in `domain/` (pure Kotlin, tested with JUnit).
+
+## Firebase setup (accounts)
+Sign-in needs a Firebase project: create it in the Firebase console, enable Authentication with the Email/Password provider, add an Android app with the id `pt.ismai.farol` and put the downloaded file at `app/google-services.json`. Without that file the app still builds and runs, but with no sign-in screen (no accounts).

@@ -22,6 +22,9 @@ interface AnalysisStore {
 
     suspend fun delete(id: Long)
     suspend fun clear()
+
+    /** Forgets everything (analyses and favorites): used when the account signs out. */
+    suspend fun reset()
     suspend fun setFavorite(target: String, favorite: Boolean)
 }
 
@@ -43,6 +46,11 @@ class InMemoryAnalysisStore : AnalysisStore {
 
     override suspend fun clear() {
         items.value = emptyList()
+    }
+
+    override suspend fun reset() {
+        items.value = emptyList()
+        favoriteList.value = emptyList()
     }
 
     override suspend fun setFavorite(target: String, favorite: Boolean) = favoriteList.update { list ->

@@ -4,6 +4,7 @@ import android.net.Uri
 
 /** App routes. Only strings and ids are passed. */
 object Routes {
+    const val AUTH = "auth"
     const val HOME = "home"
     const val NETWORK = "network"
     const val FAVORITES = "favorites"

@@ -1,8 +1,12 @@
 package pt.ismai.farol.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraphBuilder
@@ -13,6 +17,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import pt.ismai.farol.AppContainer
+import pt.ismai.farol.domain.AuthSession
+import pt.ismai.farol.ui.screens.auth.AuthScreen
+import pt.ismai.farol.ui.screens.auth.AuthViewModel
 import pt.ismai.farol.ui.screens.settings.SettingsScreen
 import pt.ismai.farol.ui.screens.detail.DetailScreen
 import pt.ismai.farol.ui.screens.detail.DetailViewModel
@@ -24,10 +31,25 @@ import pt.ismai.farol.ui.screens.network.NetworkScreen
 import pt.ismai.farol.ui.screens.result.ResultScreen
 import pt.ismai.farol.ui.screens.result.ResultViewModel
 
+/** Decides between the sign-in screen and the app from the account session; draws nothing until it is known. */
 @Composable
 fun FarolNavHost(container: AppContainer, modifier: Modifier = Modifier) {
+    val session by container.auth.session.collectAsStateWithLifecycle(AuthSession.Loading)
+    if (session is AuthSession.Loading) return
     val nav = rememberNavController()
-    NavHost(nav, startDestination = Routes.HOME, modifier = modifier) {
+    val start = remember { if (session is AuthSession.SignedOut) Routes.AUTH else Routes.HOME }
+    // Signing out (or in) replaces the whole back stack, so back never reaches the previous account's screens.
+    LaunchedEffect(session) {
+        val onAuth = nav.currentDestination?.route == Routes.AUTH
+        when {
+            session is AuthSession.SignedOut && !onAuth -> nav.navigate(Routes.AUTH) { popUpTo(0) }
+            session !is AuthSession.SignedOut && onAuth -> nav.navigate(Routes.HOME) { popUpTo(0) }
+        }
+    }
+    NavHost(nav, startDestination = start, modifier = modifier) {
+        composable(Routes.AUTH) {
+            AuthScreen(viewModel(factory = AuthViewModel.factory(container)))
+        }
         home(nav, container)
         result(nav, container)
         detail(nav, container)

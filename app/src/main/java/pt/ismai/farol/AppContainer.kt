@@ -7,6 +7,10 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.FirebaseAuth
+import pt.ismai.farol.data.auth.FirebaseAuthRepository
+import pt.ismai.farol.data.auth.UnavailableAuthRepository
 import pt.ismai.farol.data.remote.ConfigurableTimeout
 import pt.ismai.farol.data.remote.DnsApi
 import pt.ismai.farol.data.remote.HttpChecker
@@ -18,10 +22,13 @@ import pt.ismai.farol.data.remote.createOkHttp
 import pt.ismai.farol.data.repository.AnalysisRepositoryImpl
 import pt.ismai.farol.data.repository.Checkers
 import pt.ismai.farol.data.repository.DataTexts
+import pt.ismai.farol.data.repository.AnalysisStore
 import pt.ismai.farol.data.repository.InMemoryAnalysisStore
 import pt.ismai.farol.data.repository.SettingsRepositoryImpl
 import pt.ismai.farol.data.repository.farolDataStore
 import pt.ismai.farol.domain.AnalysisRepository
+import pt.ismai.farol.domain.AuthRepository
+import pt.ismai.farol.domain.AuthSession
 import pt.ismai.farol.domain.SettingsRepository
 import pt.ismai.farol.util.Connectivity
 
@@ -33,6 +40,22 @@ class AppContainer(context: Context) {
     private val timeout = ConfigurableTimeout()
 
     val settings: SettingsRepository by lazy { SettingsRepositoryImpl(appContext.farolDataStore) }
+
+    /** Accounts need app/google-services.json; without it the app runs with no sign-in gate. */
+    val auth: AuthRepository by lazy {
+        if (FirebaseApp.getApps(appContext).isEmpty()) {
+            UnavailableAuthRepository()
+        } else {
+            FirebaseAuthRepository(FirebaseAuth.getInstance())
+        }
+    }
+
+    // Stand-in until the cloud store: it must not leak one account's data into the next one.
+    private val store: AnalysisStore by lazy {
+        InMemoryAnalysisStore().also { memory ->
+            scope.launch { auth.session.collect { if (it is AuthSession.SignedOut) memory.reset() } }
+        }
+    }
 
     private val okHttp by lazy {
         // Load the saved timeout before the first request, then follow later changes.
@@ -54,7 +77,7 @@ class AppContainer(context: Context) {
             ),
             connectivity = Connectivity(appContext),
             texts = texts,
-            store = InMemoryAnalysisStore(),
+            store = store,
         )
     }
 }

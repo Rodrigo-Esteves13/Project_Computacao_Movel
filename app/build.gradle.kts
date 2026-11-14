@@ -25,10 +25,20 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+    testOptions {
+        // The Firebase exception classes touch android.text in their constructors.
+        unitTests.isReturnDefaultValues = true
+    }
     buildFeatures {
         compose = true
         buildConfig = true
     }
+}
+
+// The Google services plugin needs app/google-services.json (see README). Without the file the app
+// still builds and runs, but without accounts (see AppContainer.auth).
+if (file("google-services.json").exists()) {
+    pluginManager.apply(libs.plugins.google.services.get().pluginId)
 }
 
 kotlin {
@@ -54,6 +64,9 @@ dependencies {
     implementation(libs.okhttp)
     implementation(libs.gson)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.coroutines.play.services)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
     debugImplementation(libs.okhttp.logging)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
