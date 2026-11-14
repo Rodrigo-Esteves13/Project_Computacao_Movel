@@ -91,7 +91,7 @@ internal class Checkers(
         }
 
     private fun noHttps() = listOf(
-        CertificateEvaluator.evaluate(false, null, null, texts.noHttps),
+        CertificateEvaluator.evaluate(false, null, null, null),
         Checks.unavailable(CheckId.HEADERS, texts.noHeaders),
     )
 

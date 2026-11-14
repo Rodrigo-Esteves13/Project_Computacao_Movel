@@ -10,7 +10,6 @@ class DataTexts(context: Context) {
     val error: String get() = ctx.getString(R.string.data_reason_error)
     val noRdap: String get() = ctx.getString(R.string.data_reason_no_rdap)
     val noIp: String get() = ctx.getString(R.string.data_reason_no_ip)
-    val noHttps: String get() = ctx.getString(R.string.data_reason_no_https)
     val noHeaders: String get() = ctx.getString(R.string.data_reason_no_headers)
     fun redirected(host: String): String = ctx.getString(R.string.data_redirected, host)
     val noDns: String get() = ctx.getString(R.string.data_reason_no_dns)

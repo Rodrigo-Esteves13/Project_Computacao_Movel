@@ -53,6 +53,12 @@ class CertificateEvaluatorTest {
     }
 
     @Test
+    fun siteWithoutHttps_saysSoInsteadOfInvalidCertificate() {
+        val check = CertificateEvaluator.evaluate(false, null, null, null)
+        assertEquals("No secure connection (HTTPS)", check.summary)
+    }
+
+    @Test
     fun errorMessagesAreUnderstandable() {
         val expired = CertificateEvaluator.evaluate(false, null, null, "CertificateExpiredException: NotAfter")
         assertEquals("Certificate expired", expired.summary)

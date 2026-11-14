@@ -36,7 +36,7 @@ import pt.ismai.farol.domain.model.Target
 import pt.ismai.farol.domain.model.TargetType
 import pt.ismai.farol.util.Connectivity
 
-private const val CACHE_MS = 10 * 60 * 1000L
+internal const val CACHE_MS = 10 * 60 * 1000L
 
 /** A unit of work: produces the checks for the given [ids]. */
 private class Task(val ids: List<String>, val execute: suspend () -> List<Check>)
@@ -66,8 +66,7 @@ internal class AnalysisRepositoryImpl(
     }.flowOn(Dispatchers.IO)
 
     private suspend fun readCache(target: Target): AnalysisProgress? {
-        val r = latestFor(store.analyses.first(), target.value)
-            ?.takeIf { now() - it.date <= CACHE_MS && !allUnavailable(it.checks) } ?: return null
+        val r = freshResult(store.analyses.first(), target.value, now()) ?: return null
         return AnalysisProgress(
             target = r.target, type = r.type, completed = r.checks, pending = emptyList(),
             score = r.score, finished = true, fromCache = true, analysisId = r.id,
@@ -155,23 +154,8 @@ internal class AnalysisRepositoryImpl(
 
     override fun favorites(): Flow<List<FavoriteInfo>> =
         combine(store.favorites, store.analyses) { targets, analyses ->
-            targets.map { favoriteInfo(it, analyses) }
+            targets.map { favoriteInfoFor(it, analyses) }
         }
-
-    /** Last and previous scores come from the saved analyses of the target. */
-    private fun favoriteInfo(target: String, analyses: List<AnalysisResult>): FavoriteInfo {
-        val own = analyses.filter { it.target == target }.sortedByDescending { it.date }
-        val last = own.firstOrNull()
-        val previous = own.getOrNull(1)
-        return FavoriteInfo(
-            target = target,
-            score = last?.score,
-            previousScore = previous?.score,
-            changed = last != null && resultChanged(previous, last),
-            date = last?.date,
-            lastAnalysisId = last?.id,
-        )
-    }
 
     override fun isFavorite(target: String): Flow<Boolean> {
         val k = key(target)
@@ -207,7 +191,24 @@ internal class AnalysisRepositoryImpl(
         val (ports, cves) = checkers.portsAndCves(ip)
         NetworkResult(ip, connectivity.connectionType(), ports, cves, ExposureEvaluator.evaluate(ports, cves))
     }
+}
 
-    private fun latestFor(all: List<AnalysisResult>, target: String): AnalysisResult? =
-        all.filter { it.target == target }.maxByOrNull { it.date }
+/** Newest saved analysis of [target] if it is at most 10 minutes old and had real data. */
+internal fun freshResult(all: List<AnalysisResult>, target: String, nowMs: Long): AnalysisResult? =
+    all.filter { it.target == target }.maxByOrNull { it.date }
+        ?.takeIf { nowMs - it.date <= CACHE_MS && !allUnavailable(it.checks) }
+
+/** Last and previous scores come from the saved analyses of the target. */
+internal fun favoriteInfoFor(target: String, analyses: List<AnalysisResult>): FavoriteInfo {
+    val own = analyses.filter { it.target == target }.sortedByDescending { it.date }
+    val last = own.firstOrNull()
+    val previous = own.getOrNull(1)
+    return FavoriteInfo(
+        target = target,
+        score = last?.score,
+        previousScore = previous?.score,
+        changed = last != null && resultChanged(previous, last),
+        date = last?.date,
+        lastAnalysisId = last?.id,
+    )
 }
