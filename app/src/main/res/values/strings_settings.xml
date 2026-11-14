@@ -16,7 +16,7 @@
     <string name="settings_about_third_parties_text">To get the data, your searches are sent to external services: Google DNS sees the domains queried, Shodan InternetDB sees the IP addresses, and RDAP registries see the domain or IP whose ownership is looked up. With the My network option, the ipify service sees your public IP. The analyzed site also receives the connection request.</string>
 
     <string name="settings_about_data_title">Your data stays with you</string>
-    <string name="settings_about_data_text">History and favorites are stored only on this device and you can delete them whenever you want. The app has no server of its own, no accounts and no analytics. All requests use HTTPS.</string>
+    <string name="settings_about_data_text">History and favorites are kept in memory on this device only and disappear when the app is closed; you can also delete them at any time. Your theme and timeout settings are saved on the device. The app has no server of its own, no accounts and no analytics. All requests use HTTPS.</string>
 
     <string name="settings_about_limits_title">Limitations</string>
     <string name="settings_about_limits_text">A high score does not guarantee that a site is legitimate: a scam site can have a valid certificate. External databases may be out of date, and the absence of open ports or known vulnerabilities does not mean they do not exist. Use Farol as decision support, not as a verdict.</string>

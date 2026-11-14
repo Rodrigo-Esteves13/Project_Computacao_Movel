@@ -37,7 +37,7 @@ Debug APK: `./gradlew :app:assembleDebug` (output in `app/build/outputs/apk/debu
 ## Privacy and ethics
 - Passive reconnaissance only (Portuguese Law no. 109/2009, art. 6): the app reads public data and does not probe third-party systems.
 - Searched targets are sent to third parties: Google (DNS), Shodan (InternetDB), RDAP registries and ipify. The app has no server of its own.
-- History stays on the device only and can be deleted.
+- History and favorites currently live in memory on the device only and can be deleted at any time (this section is updated when cloud sync is added).
 - A high score does not guarantee that a site is legitimate.
 
 ## Architecture
