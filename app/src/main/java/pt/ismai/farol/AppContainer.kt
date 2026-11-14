@@ -4,13 +4,17 @@ import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 import pt.ismai.farol.data.auth.FirebaseAuthRepository
 import pt.ismai.farol.data.auth.UnavailableAuthRepository
+import pt.ismai.farol.data.firestore.FirestoreAnalysisStore
 import pt.ismai.farol.data.remote.ConfigurableTimeout
 import pt.ismai.farol.data.remote.DnsApi
 import pt.ismai.farol.data.remote.HttpChecker
@@ -41,19 +45,28 @@ class AppContainer(context: Context) {
 
     val settings: SettingsRepository by lazy { SettingsRepositoryImpl(appContext.farolDataStore) }
 
+    private val firebaseConfigured: Boolean get() = FirebaseApp.getApps(appContext).isNotEmpty()
+
     /** Accounts need app/google-services.json; without it the app runs with no sign-in gate. */
     val auth: AuthRepository by lazy {
-        if (FirebaseApp.getApps(appContext).isEmpty()) {
-            UnavailableAuthRepository()
+        if (firebaseConfigured) {
+            FirebaseAuthRepository(FirebaseAuth.getInstance()) { uid -> firestoreStore.deleteAllFor(uid) }
         } else {
-            FirebaseAuthRepository(FirebaseAuth.getInstance())
+            UnavailableAuthRepository()
         }
     }
 
-    // Stand-in until the cloud store: it must not leak one account's data into the next one.
+    private val firestoreStore: FirestoreAnalysisStore by lazy {
+        val uid = auth.session.map { (it as? AuthSession.SignedIn)?.user?.uid }.distinctUntilChanged()
+        FirestoreAnalysisStore(FirebaseFirestore.getInstance(), uid)
+    }
+
+    /** History and favorites: in the signed-in account's Firestore branch, or in memory without Firebase. */
     private val store: AnalysisStore by lazy {
-        InMemoryAnalysisStore().also { memory ->
-            scope.launch { auth.session.collect { if (it is AuthSession.SignedOut) memory.reset() } }
+        if (firebaseConfigured) {
+            firestoreStore
+        } else {
+            InMemoryAnalysisStore()
         }
     }
 

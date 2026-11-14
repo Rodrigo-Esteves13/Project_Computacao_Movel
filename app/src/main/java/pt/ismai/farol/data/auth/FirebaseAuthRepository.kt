@@ -34,7 +34,14 @@ fun authErrorFor(error: Throwable): AuthError = when (error) {
     else -> AuthError.UNKNOWN
 }
 
-internal class FirebaseAuthRepository(private val auth: FirebaseAuth) : AuthRepository {
+/**
+ * [eraseUserData] removes what is stored under an account; it runs before the account itself is
+ * deleted, because after that the security rules no longer let anyone reach the data.
+ */
+internal class FirebaseAuthRepository(
+    private val auth: FirebaseAuth,
+    private val eraseUserData: suspend (uid: String) -> Unit,
+) : AuthRepository {
 
     override val session: Flow<AuthSession> = callbackFlow {
         val listener = FirebaseAuth.AuthStateListener { firebase ->
@@ -58,7 +65,9 @@ internal class FirebaseAuthRepository(private val auth: FirebaseAuth) : AuthRepo
     override fun signOut() = auth.signOut()
 
     override suspend fun deleteAccount(): Result<Unit> = call {
-        auth.currentUser?.delete()?.await()
+        val user = auth.currentUser ?: return@call
+        eraseUserData(user.uid)
+        user.delete().await()
     }
 
     /** Like runCatching, but cancellation is not a failure and errors are already mapped. */

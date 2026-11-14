@@ -1,0 +1,15 @@
+// Firestore security rules for Farol.
+//
+// This file is versioned for reference only: Gradle does not read it. The same text is
+// published by pasting it in the Firebase console (Firestore Database > Rules).
+//
+// Every document lives under users/{uid}/... and only the signed-in owner of that uid can
+// read or write it. Anything not matched below is denied by default.
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{uid}/{document=**} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+  }
+}
