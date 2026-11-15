@@ -5,6 +5,7 @@
     <string name="result_share">Share report</string>
     <string name="result_reanalyze">Re-analyze</string>
     <string name="result_cache">Cached result (analysis less than 10 minutes old). Re-analyze to get fresh data.</string>
+    <string name="share_no_target">Farol could not find a domain or IP address in the shared text.</string>
     <string name="result_basis">Based on %1$d of %2$d checks.</string>
     <string name="result_cap_certificate">Score limited to %1$d because the certificate has a serious problem.</string>
     <string name="result_cap_exposure">Score limited to %1$d because known vulnerabilities (CVE) were found.</string>

@@ -33,7 +33,13 @@ import pt.ismai.farol.ui.screens.result.ResultViewModel
 
 /** Decides between the sign-in screen and the app from the account session; draws nothing until it is known. */
 @Composable
-fun FarolNavHost(container: AppContainer, modifier: Modifier = Modifier) {
+fun FarolNavHost(
+    container: AppContainer,
+    modifier: Modifier = Modifier,
+    /** A target received from the share sheet; opened as soon as the user is past the sign-in screen. */
+    sharedTarget: String? = null,
+    onSharedHandled: () -> Unit = {},
+) {
     val session by container.auth.session.collectAsStateWithLifecycle(AuthSession.Loading)
     if (session is AuthSession.Loading) return
     val nav = rememberNavController()
@@ -44,6 +50,13 @@ fun FarolNavHost(container: AppContainer, modifier: Modifier = Modifier) {
         when {
             session is AuthSession.SignedOut && !onAuth -> nav.navigate(Routes.AUTH) { popUpTo(0) }
             session !is AuthSession.SignedOut && onAuth -> nav.navigate(Routes.HOME) { popUpTo(0) }
+        }
+    }
+    // Declared after the gate above, so after a sign-in the home screen is under the shared result.
+    LaunchedEffect(sharedTarget, session) {
+        if (sharedTarget != null && session !is AuthSession.SignedOut) {
+            nav.navigate(Routes.result(sharedTarget)) { launchSingleTop = true }
+            onSharedHandled()
         }
     }
     NavHost(nav, startDestination = start, modifier = modifier) {
