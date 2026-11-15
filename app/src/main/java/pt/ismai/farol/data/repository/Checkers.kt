@@ -7,6 +7,8 @@ import java.net.UnknownHostException
 import java.time.Instant
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import pt.ismai.farol.data.remote.AddressGuard
+import pt.ismai.farol.data.remote.BlockedAddressException
 import pt.ismai.farol.data.remote.DnsApi
 import pt.ismai.farol.data.remote.HttpChecker
 import pt.ismai.farol.data.remote.InternetDbApi
@@ -67,6 +69,11 @@ internal class Checkers(
     suspend fun certificateAndHeaders(domain: String): List<Check> {
         val r = try {
             http.check(domain)
+        } catch (e: BlockedAddressException) {
+            return listOf(
+                Checks.unavailable(CheckId.CERTIFICATE, texts.blockedAddress),
+                Checks.unavailable(CheckId.HEADERS, texts.blockedAddress),
+            )
         } catch (e: ConnectException) {
             return noHttps()
         } catch (e: UnknownHostException) {
@@ -190,6 +197,7 @@ internal class Checkers(
     /** InternetDB errors (5xx, 403, 429) make only this check UNAVAILABLE. */
     suspend fun exposure(ip: String?): Check {
         if (ip == null) return Checks.unavailable(CheckId.EXPOSURE, texts.noIp)
+        if (AddressGuard.isBlockedLiteral(ip)) return Checks.unavailable(CheckId.EXPOSURE, texts.blockedAddress)
         return try {
             val (ports, cves) = portsAndCves(ip)
             ExposureEvaluator.evaluate(ports, cves)

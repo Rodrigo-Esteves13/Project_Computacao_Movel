@@ -4,6 +4,7 @@
     <string name="data_reason_error">This check could not be completed.</string>
     <string name="data_reason_no_rdap">This domain has no public registration date.</string>
     <string name="data_reason_no_ip">No IPv4 address was found for this domain.</string>
+    <string name="data_reason_blocked_address">The site points to a private or reserved address, so Farol did not contact it.</string>
     <string name="data_reason_no_headers">The headers could not be read because the secure connection failed.</string>
     <string name="data_redirected">The site redirected to %1$s; the certificate and headers analyzed belong to that address.</string>
     <string name="data_reason_no_dns">The DNS records could not be queried.</string>

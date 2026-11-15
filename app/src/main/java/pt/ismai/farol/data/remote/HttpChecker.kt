@@ -9,11 +9,15 @@ import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
 import okhttp3.Call
 import okhttp3.Callback
+import okhttp3.HttpUrl
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 
 private const val MAX_CAUSES = 10
+private const val MAX_REDIRECTS = 3
+private val REDIRECT_CODES = setOf(301, 302, 303, 307, 308)
 
 data class HttpResult(
     val certValid: Boolean,
@@ -43,19 +47,45 @@ fun describeError(error: Throwable): String {
     return parts.joinToString(" | ")
 }
 
-/** A single HTTPS request to the site: yields the certificate (handshake) and headers. */
-class HttpChecker(private val client: OkHttpClient) {
+/**
+ * An HTTPS request to the site: yields the certificate (handshake) and headers.
+ *
+ * Every connection goes through [GuardedDns], so a site that points at a private address is
+ * refused with [BlockedAddressException]. Redirects are followed here, not by OkHttp: at most
+ * [MAX_REDIRECTS] hops, HTTPS only, and each hop is resolved (and guarded) again.
+ */
+class HttpChecker(client: OkHttpClient) {
+    private val client = client.newBuilder()
+        .dns(GuardedDns)
+        .followRedirects(false)
+        .followSslRedirects(false)
+        .build()
 
     /**
      * SSLException is a result (certValid = false). Timeouts and connection failures propagate
      * to the caller. Cancelling the coroutine cancels the request.
      */
     suspend fun check(domain: String): HttpResult {
-        val request = Request.Builder().url("https://$domain").get().build()
         return try {
-            client.newCall(request).await().use { resp -> toResult(resp) }
+            fetch("https://$domain".toHttpUrl()).use { resp -> toResult(resp) }
         } catch (e: SSLException) {
             HttpResult(false, null, null, emptyMap(), describeError(e))
+        }
+    }
+
+    /** Follows up to [MAX_REDIRECTS] HTTPS redirects; otherwise returns the last response as it is. */
+    private suspend fun fetch(start: HttpUrl): Response {
+        var url = start
+        var hops = 0
+        while (true) {
+            val response = client.newCall(Request.Builder().url(url).get().build()).await()
+            val next = response.header("Location")?.let { response.request.url.resolve(it) }
+            if (response.code !in REDIRECT_CODES || next == null || !next.isHttps || hops >= MAX_REDIRECTS) {
+                return response
+            }
+            response.close()
+            url = next
+            hops++
         }
     }
 
