@@ -35,7 +35,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import pt.ismai.farol.R
 import pt.ismai.farol.domain.Checks
+import pt.ismai.farol.domain.ScoreCalculator
 import pt.ismai.farol.domain.model.AnalysisProgress
+import pt.ismai.farol.domain.model.Check
+import pt.ismai.farol.domain.model.CheckId
 import pt.ismai.farol.ui.components.LoadingCard
 import pt.ismai.farol.ui.components.CheckCard
 import pt.ismai.farol.ui.components.ScoreGauge
@@ -112,6 +115,7 @@ private fun ResultList(
         verticalArrangement = Arrangement.spacedBy(SPACING),
     ) {
         item { ScoreGauge(progress.score, Modifier.fillMaxWidth(), analyzing = !progress.finished) }
+        if (progress.finished && progress.score != null) item { ScoreBasis(progress.completed) }
         if (progress.fromCache) item { Text(stringResource(R.string.result_cache), style = MaterialTheme.typography.bodyMedium) }
         items(progress.completed, key = { it.id }) { v ->
             CheckCard(v, onClick = progress.analysisId?.let { id -> { onDetail(id, v.id) } })
@@ -122,6 +126,23 @@ private fun ResultList(
             OutlinedButton(onClick = onReanalyze, enabled = progress.finished, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.result_reanalyze))
             }
+        }
+    }
+}
+
+/** Says how many checks the score rests on and, when it applies, why the score was held down. */
+@Composable
+private fun ScoreBasis(checks: List<Check>) {
+    val coverage = ScoreCalculator.coverage(checks)
+    val cap = ScoreCalculator.cap(checks)
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            stringResource(R.string.result_basis, coverage.available, coverage.total),
+            style = MaterialTheme.typography.bodyMedium,
+        )
+        if (cap != null) {
+            val reason = if (cap.checkId == CheckId.CERTIFICATE) R.string.result_cap_certificate else R.string.result_cap_exposure
+            Text(stringResource(reason, cap.limit), style = MaterialTheme.typography.bodyMedium)
         }
     }
 }

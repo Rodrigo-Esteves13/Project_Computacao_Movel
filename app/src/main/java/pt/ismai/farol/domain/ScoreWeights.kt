@@ -18,6 +18,10 @@ object ScoreWeights {
     /** Scale of the final score (0..100). */
     const val SCALE = 100
 
+    // Highest score allowed when a critical check fails, whatever the other checks give.
+    const val CAP_CERTIFICATE_FAIL = 40
+    const val CAP_EXPOSURE_FAIL = 60
+
     // Certificate: >30 days = maximum; 8..30 = medium; <=7 (or expired) = short; invalid = 0.
     const val CERT_DAYS_SAFE = 30
     const val CERT_DAYS_CRITICAL = 7

@@ -94,6 +94,55 @@ class ScoreCalculatorTest {
         assertEquals(13, ScoreCalculator.calculate(listOf(v(CheckState.WARNING, 1, 8))))
     }
 
+    private fun full(id: String, weight: Int) = Check(id, id, CheckState.OK, "", "", weight, weight)
+
+    @Test
+    fun invalidCertificateCapsAnOtherwisePerfectScore() {
+        val list = listOf(
+            CertificateEvaluator.evaluate(false, null, null, null),
+            full(CheckId.AGE, 20), full(CheckId.HEADERS, 20), full(CheckId.EMAIL, 20), full(CheckId.EXPOSURE, 15),
+        )
+        // raw = 75 / 100 = 75, capped at 40
+        assertEquals(40, ScoreCalculator.calculate(list))
+        assertEquals(CheckId.CERTIFICATE, ScoreCalculator.cap(list)?.checkId)
+    }
+
+    @Test
+    fun knownVulnerabilitiesCapAt60() {
+        val list = listOf(
+            full(CheckId.CERTIFICATE, 25), full(CheckId.AGE, 20), full(CheckId.HEADERS, 20), full(CheckId.EMAIL, 20),
+            ExposureEvaluator.evaluate(listOf(443), listOf("CVE-2020-0001")),
+        )
+        // raw = 85 / 100 = 85, capped at 60
+        assertEquals(60, ScoreCalculator.calculate(list))
+    }
+
+    @Test
+    fun lowestCapWinsAndNoCapWhenNothingFails() {
+        val both = listOf(
+            CertificateEvaluator.evaluate(false, null, null, null),
+            ExposureEvaluator.evaluate(listOf(443), listOf("CVE-2020-0001")),
+        )
+        assertEquals(40, ScoreCalculator.cap(both)?.limit)
+        assertNull(ScoreCalculator.cap(listOf(full(CheckId.CERTIFICATE, 25))))
+    }
+
+    @Test
+    fun warningCertificateIsNotCapped() {
+        val list = listOf(CertificateEvaluator.evaluate(true, 3, null, null), full(CheckId.AGE, 20))
+        assertNull(ScoreCalculator.cap(list))
+    }
+
+    @Test
+    fun coverageCountsOnlyScoredChecks() {
+        val list = listOf(
+            full(CheckId.CERTIFICATE, 25),
+            Checks.unavailable(CheckId.AGE, "no data"),
+            IpOwnerEvaluator.evaluate("Google LLC", "US"),
+        )
+        assertEquals(ScoreCoverage(1, 2), ScoreCalculator.coverage(list))
+    }
+
     @Test
     fun ipWithExposureOnly() {
         val list = listOf(

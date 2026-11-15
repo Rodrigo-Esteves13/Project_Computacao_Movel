@@ -25,6 +25,13 @@ fun reportText(r: AnalysisResult): String {
         appendLine("Target: ${r.target} ($type)")
         appendLine("Date: $date")
         appendLine("Score: $score")
+        if (r.score != null) {
+            val coverage = ScoreCalculator.coverage(r.checks)
+            appendLine("Based on ${coverage.available} of ${coverage.total} checks")
+            ScoreCalculator.cap(r.checks)?.let {
+                appendLine("Score limited to ${it.limit} because of a critical ${Checks.title(it.checkId)} result")
+            }
+        }
         appendLine()
         r.checks.forEach { appendLine(line(it)) }
         appendLine()
