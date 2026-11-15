@@ -17,6 +17,8 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -26,6 +28,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -35,7 +38,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import pt.ismai.farol.R
 import pt.ismai.farol.domain.Checks
+import pt.ismai.farol.domain.Lookalike
+import pt.ismai.farol.domain.LookalikeKind
+import pt.ismai.farol.domain.LookalikeWarning
 import pt.ismai.farol.domain.ScoreCalculator
+import pt.ismai.farol.domain.model.TargetType
 import pt.ismai.farol.domain.model.AnalysisProgress
 import pt.ismai.farol.domain.model.Check
 import pt.ismai.farol.domain.model.CheckId
@@ -109,12 +116,16 @@ private fun ResultList(
     onDetail: (Long, String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val lookalike = remember(progress.target, progress.type) {
+        if (progress.type == TargetType.DOMAIN) Lookalike.detect(progress.target) else null
+    }
     LazyColumn(
         modifier = modifier,
         contentPadding = PaddingValues(SPACING),
         verticalArrangement = Arrangement.spacedBy(SPACING),
     ) {
         item { ScoreGauge(progress.score, Modifier.fillMaxWidth(), analyzing = !progress.finished) }
+        lookalike?.let { warning -> item { LookalikeCard(warning) } }
         if (progress.finished && progress.score != null) item { ScoreBasis(progress.completed) }
         if (progress.fromCache) item { Text(stringResource(R.string.result_cache), style = MaterialTheme.typography.bodyMedium) }
         items(progress.completed, key = { it.id }) { v ->
@@ -126,6 +137,29 @@ private fun ResultList(
             OutlinedButton(onClick = onReanalyze, enabled = progress.finished, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.result_reanalyze))
             }
+        }
+    }
+}
+
+/** A hint, not a verdict: the name may be imitating a known one. It does not change the score. */
+@Composable
+private fun LookalikeCard(warning: LookalikeWarning) {
+    val reason = when (warning.kind) {
+        LookalikeKind.MIXED_ALPHABETS -> stringResource(R.string.lookalike_mixed, warning.shown)
+        LookalikeKind.OTHER_ALPHABET -> stringResource(R.string.lookalike_other, warning.shown)
+        LookalikeKind.SIMILAR_TO_BRAND -> stringResource(R.string.lookalike_brand, warning.brand.orEmpty())
+    }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+    ) {
+        Column(Modifier.padding(SPACING), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                stringResource(R.string.lookalike_title),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+            )
+            Text(reason, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onErrorContainer)
         }
     }
 }

@@ -25,6 +25,9 @@ fun reportText(r: AnalysisResult): String {
         appendLine("Target: ${r.target} ($type)")
         appendLine("Date: $date")
         appendLine("Score: $score")
+        if (r.type == TargetType.DOMAIN) {
+            Lookalike.detect(r.target)?.let { appendLine("Warning: ${Lookalike.describe(it)}") }
+        }
         if (r.score != null) {
             val coverage = ScoreCalculator.coverage(r.checks)
             appendLine("Based on ${coverage.available} of ${coverage.total} checks")
