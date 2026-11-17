@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="notification_channel_name">Favorite changes</string>
+    <string name="notification_channel_description">Tells you when the score of a favorite changed.</string>
+    <string name="notification_title">A favorite changed</string>
+</resources>

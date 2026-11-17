@@ -39,6 +39,9 @@ interface AnalysisRepository {
 interface SettingsRepository {
     val theme: Flow<ThemePref>
     val timeoutSeconds: Flow<Int>
+    /** true if favorites are re-checked once a day in the background. Off by default. */
+    val dailyCheck: Flow<Boolean>
     suspend fun setTheme(theme: ThemePref)
     suspend fun setTimeout(seconds: Int)
+    suspend fun setDailyCheck(enabled: Boolean)
 }

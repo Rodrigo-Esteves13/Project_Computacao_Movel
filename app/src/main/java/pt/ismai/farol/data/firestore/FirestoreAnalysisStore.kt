@@ -102,6 +102,7 @@ internal class FirestoreAnalysisStore(
     suspend fun deleteAllFor(uid: String) {
         deleteAll(analysesOf(uid), waitForServer = true)
         deleteAll(favoritesOf(uid), waitForServer = true)
+        deleteAll(user(uid).collection(SETTINGS), waitForServer = true)
     }
 
     private suspend fun deleteAll(collection: Query, waitForServer: Boolean) {

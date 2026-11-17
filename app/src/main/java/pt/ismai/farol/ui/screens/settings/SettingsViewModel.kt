@@ -20,6 +20,7 @@ import pt.ismai.farol.domain.AuthRepository
 import pt.ismai.farol.domain.AuthSession
 import pt.ismai.farol.domain.SettingsRepository
 import pt.ismai.farol.domain.model.ThemePref
+import pt.ismai.farol.work.DailyCheckScheduler
 
 sealed interface SettingsUiState {
     data object Loading : SettingsUiState
@@ -28,6 +29,7 @@ sealed interface SettingsUiState {
         val theme: ThemePref,
         val timeoutSeconds: Int,
         val session: AuthSession,
+        val dailyCheck: Boolean,
     ) : SettingsUiState
 }
 
@@ -37,10 +39,11 @@ val TIMEOUT_OPTIONS_SECONDS = listOf(5, 10, 20, 30)
 class SettingsViewModel(
     private val settings: SettingsRepository,
     private val auth: AuthRepository,
+    private val dailyCheck: DailyCheckScheduler,
 ) : ViewModel() {
     val state: StateFlow<SettingsUiState> =
-        combine(settings.theme, settings.timeoutSeconds, auth.session) { theme, timeout, session ->
-            SettingsUiState.Ready(theme, timeout, session) as SettingsUiState
+        combine(settings.theme, settings.timeoutSeconds, auth.session, settings.dailyCheck) { theme, timeout, session, daily ->
+            SettingsUiState.Ready(theme, timeout, session, daily) as SettingsUiState
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(SUBSCRIPTION_TIMEOUT_MS), SettingsUiState.Loading)
 
     private val errorHandler = CoroutineExceptionHandler { _, error ->
@@ -67,6 +70,14 @@ class SettingsViewModel(
         viewModelScope.launch(errorHandler) { settings.setTheme(theme) }
     }
 
+    /** Saves the choice and starts or stops the background job; the caller asks for the notification permission first. */
+    fun chooseDailyCheck(enabled: Boolean) {
+        viewModelScope.launch(errorHandler) {
+            settings.setDailyCheck(enabled)
+            if (enabled) dailyCheck.enable() else dailyCheck.disable()
+        }
+    }
+
     fun chooseTimeout(seconds: Int) {
         viewModelScope.launch(errorHandler) { settings.setTimeout(seconds) }
     }
@@ -75,7 +86,7 @@ class SettingsViewModel(
         private const val SUBSCRIPTION_TIMEOUT_MS = 5_000L
 
         fun factory(container: AppContainer) = viewModelFactory {
-            initializer { SettingsViewModel(container.settings, container.auth) }
+            initializer { SettingsViewModel(container.settings, container.auth, container.dailyCheck) }
         }
     }
 }

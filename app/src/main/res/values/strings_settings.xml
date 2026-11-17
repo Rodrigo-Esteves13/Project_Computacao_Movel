@@ -7,6 +7,8 @@
     <string name="settings_theme_light">Light</string>
     <string name="settings_timeout">Request timeout</string>
     <string name="settings_timeout_value">%1$d seconds</string>
+    <string name="settings_daily_title">Daily check of favorites</string>
+    <string name="settings_daily_text">Once a day, with an internet connection, Farol re-checks your favorites in the background and notifies you if a score changed.</string>
     <string name="settings_about">About and privacy</string>
 
     <string name="settings_about_passive_title">Passive reconnaissance only</string>
@@ -16,7 +18,7 @@
     <string name="settings_about_third_parties_text">To get the data, your searches are sent to external services: Google DNS sees the domains queried, Shodan InternetDB sees the IP addresses, and RDAP registries see the domain or IP whose ownership is looked up. With the My network option, the ipify service sees your public IP. The analyzed site also receives the connection request.</string>
 
     <string name="settings_about_data_title">Your data stays with you</string>
-    <string name="settings_about_data_text">Your history and favorites are stored in your account, in Firebase (Google Cloud, servers in the EU), so they follow you across your devices. Only you can read them, and you can delete any item, the whole history, or the entire account with all its data in these settings. Your email is kept by Firebase Authentication. Your theme and timeout settings stay on this device. The app has no server of its own and no analytics. All requests use HTTPS.</string>
+    <string name="settings_about_data_text">Your history and favorites are stored in your account, in Firebase (Google Cloud, servers in the EU), so they follow you across your devices. Only you can read them, and you can delete any item, the whole history, or the entire account with all its data in these settings. Your email is kept by Firebase Authentication. Your theme and timeout are saved in your account too, so they follow you to another device; the daily check switch stays on each device. The app has no server of its own and no analytics. All requests use HTTPS.</string>
 
     <string name="settings_about_limits_title">Limitations</string>
     <string name="settings_about_limits_text">A high score does not guarantee that a site is legitimate: a scam site can have a valid certificate. External databases may be out of date, and the absence of open ports or known vulnerabilities does not mean they do not exist. Use Farol as decision support, not as a verdict.</string>

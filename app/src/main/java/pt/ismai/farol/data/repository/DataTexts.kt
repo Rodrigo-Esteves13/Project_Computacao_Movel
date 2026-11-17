@@ -3,17 +3,31 @@ package pt.ismai.farol.data.repository
 import android.content.Context
 import pt.ismai.farol.R
 
-/** "Unavailable" reasons shown to the user (strings_data.xml). */
-class DataTexts(context: Context) {
+/** "Unavailable" reasons shown to the user. An interface, so tests do not need an Android Context. */
+interface DataTexts {
+    val timeout: String
+    val error: String
+    val noRdap: String
+    val noIp: String
+    val blockedAddress: String
+    val noHeaders: String
+    fun redirected(host: String): String
+    val noDns: String
+    fun mxWith(servers: String): String
+    val mxNone: String
+}
+
+/** The real texts, from strings_data.xml. */
+class AndroidDataTexts(context: Context) : DataTexts {
     private val ctx = context.applicationContext
-    val timeout: String get() = ctx.getString(R.string.data_reason_timeout)
-    val error: String get() = ctx.getString(R.string.data_reason_error)
-    val noRdap: String get() = ctx.getString(R.string.data_reason_no_rdap)
-    val noIp: String get() = ctx.getString(R.string.data_reason_no_ip)
-    val blockedAddress: String get() = ctx.getString(R.string.data_reason_blocked_address)
-    val noHeaders: String get() = ctx.getString(R.string.data_reason_no_headers)
-    fun redirected(host: String): String = ctx.getString(R.string.data_redirected, host)
-    val noDns: String get() = ctx.getString(R.string.data_reason_no_dns)
-    fun mxWith(servers: String): String = ctx.getString(R.string.data_mx_with, servers)
-    val mxNone: String get() = ctx.getString(R.string.data_mx_none)
+    override val timeout: String get() = ctx.getString(R.string.data_reason_timeout)
+    override val error: String get() = ctx.getString(R.string.data_reason_error)
+    override val noRdap: String get() = ctx.getString(R.string.data_reason_no_rdap)
+    override val noIp: String get() = ctx.getString(R.string.data_reason_no_ip)
+    override val blockedAddress: String get() = ctx.getString(R.string.data_reason_blocked_address)
+    override val noHeaders: String get() = ctx.getString(R.string.data_reason_no_headers)
+    override fun redirected(host: String): String = ctx.getString(R.string.data_redirected, host)
+    override val noDns: String get() = ctx.getString(R.string.data_reason_no_dns)
+    override fun mxWith(servers: String): String = ctx.getString(R.string.data_mx_with, servers)
+    override val mxNone: String get() = ctx.getString(R.string.data_mx_none)
 }

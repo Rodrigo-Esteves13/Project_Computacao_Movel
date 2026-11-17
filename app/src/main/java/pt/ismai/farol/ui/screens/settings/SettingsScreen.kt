@@ -1,5 +1,10 @@
 package pt.ismai.farol.ui.screens.settings
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -8,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -17,6 +23,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -25,9 +32,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import pt.ismai.farol.AppContainer
@@ -66,6 +75,8 @@ fun SettingsScreen(container: AppContainer, onBack: () -> Unit) {
                 val ready = state as SettingsUiState.Ready
                 ThemeSection(ready.theme, vm::chooseTheme)
                 TimeoutSection(ready.timeoutSeconds, vm::chooseTimeout)
+                // Favorites only live in an account, so the background check needs one.
+                if (ready.session is AuthSession.SignedIn) DailyCheckSection(ready.dailyCheck, vm::chooseDailyCheck)
                 (ready.session as? AuthSession.SignedIn)?.let {
                     AccountSection(it.user.email.orEmpty(), vm)
                 }
@@ -90,6 +101,33 @@ private fun TimeoutSection(current: Int, onChoose: (Int) -> Unit) {
         RadioOption(stringResource(R.string.settings_timeout_value, seconds), seconds == current) {
             onChoose(seconds)
         }
+    }
+}
+
+@Composable
+private fun DailyCheckSection(enabled: Boolean, onChoose: (Boolean) -> Unit) {
+    val context = LocalContext.current
+    // Android 13 and later: the user must allow notifications, or the alert would never show.
+    val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) onChoose(true)
+    }
+    fun change(on: Boolean) {
+        val needsPermission = on && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        if (needsPermission) permission.launch(Manifest.permission.POST_NOTIFICATIONS) else onChoose(on)
+    }
+    SectionTitle(R.string.settings_daily_title)
+    Row(
+        Modifier.fillMaxWidth().toggleable(enabled, role = Role.Switch, onValueChange = ::change),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            stringResource(R.string.settings_daily_text),
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.weight(1f).padding(end = 16.dp),
+        )
+        Switch(checked = enabled, onCheckedChange = null)
     }
 }
 

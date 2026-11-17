@@ -34,7 +34,7 @@ import pt.ismai.farol.domain.model.FavoriteInfo
 import pt.ismai.farol.domain.model.NetworkResult
 import pt.ismai.farol.domain.model.Target
 import pt.ismai.farol.domain.model.TargetType
-import pt.ismai.farol.util.Connectivity
+import pt.ismai.farol.util.NetworkStatus
 
 internal const val CACHE_MS = 10 * 60 * 1000L
 
@@ -43,7 +43,7 @@ private class Task(val ids: List<String>, val execute: suspend () -> List<Check>
 
 internal class AnalysisRepositoryImpl(
     private val checkers: Checkers,
-    private val connectivity: Connectivity,
+    private val connectivity: NetworkStatus,
     private val texts: DataTexts,
     private val store: AnalysisStore,
     private val now: () -> Long = System::currentTimeMillis,
