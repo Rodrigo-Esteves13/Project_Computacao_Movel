@@ -12,3 +12,8 @@
 
 # Firebase client config (contains the project API key; each machine downloads its own, see README)
 /app/google-services.json
+
+# Release signing: the keystore and its passwords never go to git
+keystore.properties
+*.jks
+*.keystore

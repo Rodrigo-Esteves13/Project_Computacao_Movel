@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -15,10 +17,31 @@ android {
         versionName = "1.0"
     }
 
+    // Release signing comes from keystore.properties in the project root (never committed, see README).
+    // Without that file the release build is produced unsigned, so a clone still builds.
+    val keystoreProperties = Properties().apply {
+        val file = rootProject.file("keystore.properties")
+        if (file.exists()) file.inputStream().use { load(it) }
+    }
+    val hasReleaseKey = keystoreProperties.getProperty("storeFile") != null
+    signingConfigs {
+        if (hasReleaseKey) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // R8: removes unused code and resources and renames the rest (smaller, harder to read).
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (hasReleaseKey) signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {
@@ -28,6 +51,8 @@ android {
     testOptions {
         // The Firebase exception classes touch android.text in their constructors.
         unitTests.isReturnDefaultValues = true
+        // Robolectric needs the app resources to draw Compose screens on the JVM.
+        unitTests.isIncludeAndroidResources = true
     }
     buildFeatures {
         compose = true
@@ -74,4 +99,8 @@ dependencies {
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(platform(libs.androidx.compose.bom))
+    testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.robolectric)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }

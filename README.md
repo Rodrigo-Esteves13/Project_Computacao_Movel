@@ -46,3 +46,15 @@ MVVM + Repository, manual dependency injection (`AppContainer`). Checks run in p
 
 ## Firebase setup (accounts)
 Sign-in needs a Firebase project: create it in the Firebase console, enable Authentication with the Email/Password provider, add an Android app with the id `pt.ismai.farol` and put the downloaded file at `app/google-services.json`. Then enable Cloud Firestore (production mode, an EU location) and publish the rules in `firestore.rules`. The file is ignored by git because it holds an API key: restrict that key in Google Cloud to the Android package `pt.ismai.farol` and the SHA-1 of your signing key (`./gradlew signingReport`); each machine or keystore needs its SHA-1 added. Without that file the app still builds and runs, but with no sign-in screen (no accounts).
+
+## Release build
+`./gradlew :app:assembleRelease` produces a minified (R8) and resource-shrunk APK. To sign it, create your own keystore and a file `keystore.properties` in the project root (both are ignored by git):
+
+```
+storeFile=farol-release.jks
+storePassword=...
+keyAlias=farol
+keyPassword=...
+```
+
+Create the keystore with `keytool -genkeypair -v -keystore farol-release.jks -alias farol -keyalg RSA -keysize 2048 -validity 10000`. Without `keystore.properties` the release APK is built unsigned, which cannot be installed. If you use the Firebase login, add the release key's SHA-1 (`keytool -list -v -keystore farol-release.jks`) to the Android API key restriction in Google Cloud, or sign-in fails.
