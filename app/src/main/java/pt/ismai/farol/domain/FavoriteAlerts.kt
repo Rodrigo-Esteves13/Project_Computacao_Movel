@@ -19,11 +19,15 @@ object FavoriteAlerts {
         return "${changed.size} favorites changed: $names$more"
     }
 
+    private fun what(f: FavoriteInfo): String =
+        if (f.changedChecks.isEmpty()) "" else " (${f.changedChecks.joinToString(", ")})"
+
     private fun singleLine(f: FavoriteInfo): String {
         val now = f.score
         val before = f.previousScore
         return when {
-            now != null && before != null && now != before -> "${f.target}: score went from $before to $now"
+            now != null && before != null && now != before -> "${f.target}: score went from $before to $now" + what(f)
+            f.changedChecks.isNotEmpty() -> "${f.target}: changed: ${f.changedChecks.joinToString(", ")}"
             else -> "${f.target}: one of the checks changed"
         }
     }

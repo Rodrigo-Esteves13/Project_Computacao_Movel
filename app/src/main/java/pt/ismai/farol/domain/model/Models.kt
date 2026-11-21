@@ -76,6 +76,8 @@ data class FavoriteInfo(
     val changed: Boolean,
     val date: Long?,
     val lastAnalysisId: Long?,
+    /** titles of the checks whose state differs from the previous analysis */
+    val changedChecks: List<String> = emptyList(),
 )
 
 data class NetworkResult(

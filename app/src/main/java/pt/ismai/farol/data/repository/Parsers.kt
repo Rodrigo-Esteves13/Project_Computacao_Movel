@@ -133,5 +133,12 @@ fun resultChanged(previous: AnalysisResult?, latest: AnalysisResult): Boolean {
     return before != after
 }
 
+/** Titles of the checks whose state differs between two analyses (a check that only exists in one counts). */
+fun changedChecks(previous: AnalysisResult?, latest: AnalysisResult): List<String> {
+    if (previous == null) return emptyList()
+    val before = previous.checks.associate { it.id to it.state }
+    return latest.checks.filter { before[it.id] != it.state }.map { it.title }
+}
+
 /** true if all checks are unavailable (nothing useful to save). */
 fun allUnavailable(checks: List<Check>): Boolean = checks.all { it.state == CheckState.UNAVAILABLE }

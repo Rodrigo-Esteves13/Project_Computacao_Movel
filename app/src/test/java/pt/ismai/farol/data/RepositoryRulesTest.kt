@@ -66,6 +66,20 @@ class RepositoryRulesTest {
         assertFalse(info.changed)
     }
 
+    @Test fun favorite_namesTheCheckThatChanged() {
+        val all = listOf(
+            result("a.com", 1_000, 90, CheckState.OK),
+            result("a.com", 2_000, 70, CheckState.WARNING),
+        )
+        assertEquals(listOf("Email"), favoriteInfoFor("a.com", all).changedChecks)
+    }
+
+    @Test fun favorite_noChangedChecksWhenStatesAreEqual() {
+        val all = listOf(result("a.com", 1_000, 50), result("a.com", 2_000, 50))
+        assertTrue(favoriteInfoFor("a.com", all).changedChecks.isEmpty())
+        assertTrue(favoriteInfoFor("a.com", all.take(1)).changedChecks.isEmpty())
+    }
+
     @Test fun favorite_sameScoreAndStatesIsNotAChange() {
         val all = listOf(result("a.com", 1_000, 50), result("a.com", 2_000, 50))
         assertFalse(favoriteInfoFor("a.com", all).changed)

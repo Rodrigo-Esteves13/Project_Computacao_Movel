@@ -211,5 +211,6 @@ internal fun favoriteInfoFor(target: String, analyses: List<AnalysisResult>): Fa
         changed = last != null && resultChanged(previous, last),
         date = last?.date,
         lastAnalysisId = last?.id,
+        changedChecks = if (last != null) changedChecks(previous, last) else emptyList(),
     )
 }

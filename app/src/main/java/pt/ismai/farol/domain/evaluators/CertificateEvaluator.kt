@@ -18,7 +18,32 @@ object CertificateEvaluator {
     private const val EXPLANATION = "The certificate is what lets the browser talk to the site in an encrypted " +
         "way and confirm it is really talking to that site."
 
-    fun evaluate(httpsOk: Boolean, daysRemaining: Long?, issuer: String?, sslError: String?): Check = when {
+    /**
+     * [downgradedToHttp]: the site redirected to an address without HTTPS, which caps the result at a warning.
+     * [tlsVersion] only adds a line to the detail ("TLSv1.3").
+     */
+    fun evaluate(
+        httpsOk: Boolean,
+        daysRemaining: Long?,
+        issuer: String?,
+        sslError: String?,
+        downgradedToHttp: Boolean = false,
+        tlsVersion: String? = null,
+    ): Check {
+        val base = base(httpsOk, daysRemaining, issuer, sslError)
+        val adjusted = if (downgradedToHttp && base.state != CheckState.FAIL) downgrade(base) else base
+        return if (tlsVersion.isNullOrBlank()) adjusted else adjusted.copy(detail = adjusted.detail + "\nConnection protocol: $tlsVersion.")
+    }
+
+    private fun downgrade(base: Check): Check = base.copy(
+        state = CheckState.WARNING,
+        points = minOf(base.points, ScoreWeights.CERT_POINTS_MEDIUM),
+        summary = "Redirects to an unencrypted page",
+        detail = "The site sends visitors to an address without HTTPS, so whatever they send afterwards " +
+            "can be read or altered along the way.\n\n" + base.detail,
+    )
+
+    private fun base(httpsOk: Boolean, daysRemaining: Long?, issuer: String?, sslError: String?): Check = when {
         sslError != null -> fromError(sslError)
         !httpsOk -> create(
             CheckState.FAIL, 0, "No secure connection (HTTPS)",

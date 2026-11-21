@@ -143,8 +143,9 @@ private fun ChangeDetail(info: FavoriteInfo) {
         Text(stringResource(R.string.favorites_score_change, previous, current), style = MaterialTheme.typography.bodyMedium)
     }
     if (info.changed) {
+        val what = info.changedChecks.takeIf { it.isNotEmpty() }?.joinToString(", ")
         Text(
-            stringResource(R.string.favorites_changed),
+            if (what != null) stringResource(R.string.favorites_changed_checks, what) else stringResource(R.string.favorites_changed),
             color = CheckState.WARNING.color(),
             style = MaterialTheme.typography.labelLarge,
         )

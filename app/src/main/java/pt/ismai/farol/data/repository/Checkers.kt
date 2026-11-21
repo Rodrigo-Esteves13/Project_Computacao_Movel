@@ -85,7 +85,9 @@ internal class Checkers(
             return noHttps()
         }
         val days = daysRemaining(r.expiresAt, now())
-        val cert = CertificateEvaluator.evaluate(r.certValid, days, issuerName(r.issuer), r.sslError)
+        val cert = CertificateEvaluator.evaluate(
+            r.certValid, days, issuerName(r.issuer), r.sslError, r.downgradedToHttp, r.tlsVersion,
+        )
         val headers = if (r.certValid) {
             HeadersEvaluator.evaluate(r.headers)
         } else {

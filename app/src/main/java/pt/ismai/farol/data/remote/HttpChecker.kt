@@ -27,6 +27,10 @@ data class HttpResult(
     val sslError: String?,
     /** final host after redirects (null if the request failed before any response) */
     val finalHost: String? = null,
+    /** protocol of the handshake, for example "TLSv1.3" (null if unknown) */
+    val tlsVersion: String? = null,
+    /** true if the site redirected from HTTPS to a plain HTTP address */
+    val downgradedToHttp: Boolean = false,
 )
 
 /**
@@ -67,29 +71,35 @@ class HttpChecker(client: OkHttpClient) {
      */
     suspend fun check(domain: String): HttpResult {
         return try {
-            fetch("https://$domain".toHttpUrl()).use { resp -> toResult(resp) }
+            val fetched = fetch("https://$domain".toHttpUrl())
+            fetched.response.use { resp -> toResult(resp, fetched.downgraded) }
         } catch (e: SSLException) {
             HttpResult(false, null, null, emptyMap(), describeError(e))
         }
     }
 
-    /** Follows up to [MAX_REDIRECTS] HTTPS redirects; otherwise returns the last response as it is. */
-    private suspend fun fetch(start: HttpUrl): Response {
+    private class Fetched(val response: Response, val downgraded: Boolean)
+
+    /**
+     * Follows up to [MAX_REDIRECTS] HTTPS redirects. A redirect to plain HTTP is never followed:
+     * the response that sent it is returned and the downgrade is reported.
+     */
+    private suspend fun fetch(start: HttpUrl): Fetched {
         var url = start
         var hops = 0
         while (true) {
             val response = client.newCall(Request.Builder().url(url).get().build()).await()
             val next = response.header("Location")?.let { response.request.url.resolve(it) }
-            if (response.code !in REDIRECT_CODES || next == null || !next.isHttps || hops >= MAX_REDIRECTS) {
-                return response
-            }
+            if (response.code !in REDIRECT_CODES || next == null) return Fetched(response, false)
+            if (!next.isHttps) return Fetched(response, true)
+            if (hops >= MAX_REDIRECTS) return Fetched(response, false)
             response.close()
             url = next
             hops++
         }
     }
 
-    private fun toResult(resp: Response): HttpResult {
+    private fun toResult(resp: Response, downgraded: Boolean): HttpResult {
         val cert = resp.handshake?.peerCertificates?.firstOrNull() as? X509Certificate
         return HttpResult(
             certValid = true,
@@ -100,6 +110,8 @@ class HttpChecker(client: OkHttpClient) {
             },
             sslError = null,
             finalHost = resp.request.url.host,
+            tlsVersion = resp.handshake?.tlsVersion?.javaName,
+            downgradedToHttp = downgraded,
         )
     }
 

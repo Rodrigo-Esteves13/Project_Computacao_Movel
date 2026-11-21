@@ -53,6 +53,28 @@ class CertificateEvaluatorTest {
     }
 
     @Test
+    fun downgradeToHttp_capsAGoodCertificateAtAWarning() {
+        val check = CertificateEvaluator.evaluate(true, 90, "R3", null, downgradedToHttp = true)
+        assertEquals(CheckState.WARNING, check.state)
+        assertEquals("Redirects to an unencrypted page", check.summary)
+        assertEquals(15, check.points)
+    }
+
+    @Test
+    fun downgradeDoesNotHideAnAlreadyCriticalResult() {
+        val check = CertificateEvaluator.evaluate(false, null, null, "PKIX path building failed", downgradedToHttp = true)
+        assertEquals(CheckState.FAIL, check.state)
+        assertEquals(0, check.points)
+    }
+
+    @Test
+    fun tlsVersionIsAddedToTheDetail() {
+        val check = CertificateEvaluator.evaluate(true, 90, "R3", null, tlsVersion = "TLSv1.3")
+        assertTrue(check.detail.contains("Connection protocol: TLSv1.3."))
+        assertEquals(CheckState.OK, check.state)
+    }
+
+    @Test
     fun siteWithoutHttps_saysSoInsteadOfInvalidCertificate() {
         val check = CertificateEvaluator.evaluate(false, null, null, null)
         assertEquals("No secure connection (HTTPS)", check.summary)
