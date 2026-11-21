@@ -15,6 +15,7 @@ object Checks {
         CheckId.EMAIL -> "Email anti-spoofing"
         CheckId.EXPOSURE -> "Port exposure"
         CheckId.IP_OWNER -> "IP owner"
+        CheckId.REPUTATION -> "Reputation (VirusTotal)"
         else -> id
     }
 

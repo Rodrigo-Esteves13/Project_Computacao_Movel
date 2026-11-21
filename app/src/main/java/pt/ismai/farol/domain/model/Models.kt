@@ -13,6 +13,7 @@ object CheckId {
     const val EMAIL = "email"
     const val EXPOSURE = "exposure"
     const val IP_OWNER = "ip_owner"
+    const val REPUTATION = "reputation"
 }
 
 /**

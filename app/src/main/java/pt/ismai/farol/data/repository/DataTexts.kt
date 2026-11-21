@@ -15,6 +15,8 @@ interface DataTexts {
     val noDns: String
     fun mxWith(servers: String): String
     val mxNone: String
+    val noReputationKey: String
+    val unknownToVirusTotal: String
 }
 
 /** The real texts, from strings_data.xml. */
@@ -30,4 +32,6 @@ class AndroidDataTexts(context: Context) : DataTexts {
     override val noDns: String get() = ctx.getString(R.string.data_reason_no_dns)
     override fun mxWith(servers: String): String = ctx.getString(R.string.data_mx_with, servers)
     override val mxNone: String get() = ctx.getString(R.string.data_mx_none)
+    override val noReputationKey: String get() = ctx.getString(R.string.data_reason_no_reputation_key)
+    override val unknownToVirusTotal: String get() = ctx.getString(R.string.data_reason_unknown_to_virustotal)
 }

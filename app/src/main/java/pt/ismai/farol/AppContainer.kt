@@ -22,6 +22,7 @@ import pt.ismai.farol.data.remote.HttpChecker
 import pt.ismai.farol.data.remote.InternetDbApi
 import pt.ismai.farol.data.remote.IpifyApi
 import pt.ismai.farol.data.remote.RdapApi
+import pt.ismai.farol.data.remote.VirusTotalApi
 import pt.ismai.farol.data.remote.createApi
 import pt.ismai.farol.data.remote.createOkHttp
 import pt.ismai.farol.data.repository.AnalysisRepositoryImpl
@@ -100,6 +101,8 @@ class AppContainer(context: Context) {
                 ipify = createApi<IpifyApi>(okHttp, IpifyApi.BASE_URL),
                 rdap = createApi<RdapApi>(okHttp, RdapApi.BASE_URL),
                 http = HttpChecker(okHttp),
+                virusTotal = createApi<VirusTotalApi>(okHttp, VirusTotalApi.BASE_URL),
+                virusTotalKey = BuildConfig.VIRUSTOTAL_API_KEY,
                 texts = texts,
             ),
             connectivity = Connectivity(appContext),

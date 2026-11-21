@@ -5,12 +5,13 @@ package pt.ismai.farol.domain
  * used by the evaluators in `domain/evaluators`.
  */
 object ScoreWeights {
-    // Maximum weight of each check (they add up to 100 for a domain).
+    // Maximum weight of each check (they add up to 115 for a domain, but the score is always normalized over the checks that answered).
     const val CERTIFICATE = 25
     const val DOMAIN_AGE = 20
     const val HEADERS = 20
     const val EMAIL = 20
     const val EXPOSURE = 15
+    const val REPUTATION = 15
 
     /** IP owner is informative: it never counts toward the score. */
     const val IP_OWNER = 0
@@ -21,12 +22,19 @@ object ScoreWeights {
     // Highest score allowed when a critical check fails, whatever the other checks give.
     const val CAP_CERTIFICATE_FAIL = 40
     const val CAP_EXPOSURE_FAIL = 60
+    const val CAP_REPUTATION_FAIL = 40
 
     // Certificate: >30 days = maximum; 8..30 = medium; <=7 (or expired) = short; invalid = 0.
     const val CERT_DAYS_SAFE = 30
     const val CERT_DAYS_CRITICAL = 7
     const val CERT_POINTS_MEDIUM = 15
     const val CERT_POINTS_CRITICAL = 5
+
+    // Reputation (VirusTotal engines): none = maximum; only suspicious = medium; 1..2 malicious = low;
+    // more than 2 malicious = 0 and a critical result.
+    const val REPUTATION_POINTS_SUSPICIOUS = 8
+    const val REPUTATION_POINTS_FEW_MALICIOUS = 3
+    const val REPUTATION_MANY_MALICIOUS = 2
 
     // Domain age: >365 days = maximum; 90..365 = medium; 30..89 = young; <30 = 0.
     const val DAYS_PER_YEAR = 365

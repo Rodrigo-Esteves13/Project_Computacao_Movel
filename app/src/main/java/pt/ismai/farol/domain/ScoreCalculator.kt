@@ -14,7 +14,7 @@ data class ScoreCoverage(val available: Int, val total: Int)
 /**
  * score = round(sum of points / sum of weights of available checks * 100); null if there are no weights.
  *
- * A critical certificate or exposure result also caps the score, so a site with an invalid
+ * A critical certificate, exposure or reputation result also caps the score, so a site with an invalid
  * certificate cannot look trustworthy just because its other checks are perfect.
  */
 object ScoreCalculator {
@@ -42,10 +42,12 @@ object ScoreCalculator {
 
     private val SCORED_IDS = setOf(
         CheckId.CERTIFICATE, CheckId.AGE, CheckId.HEADERS, CheckId.EMAIL, CheckId.EXPOSURE,
+        CheckId.REPUTATION,
     )
 
     private val CAPS = listOf(
         CheckId.CERTIFICATE to ScoreWeights.CAP_CERTIFICATE_FAIL,
         CheckId.EXPOSURE to ScoreWeights.CAP_EXPOSURE_FAIL,
+        CheckId.REPUTATION to ScoreWeights.CAP_REPUTATION_FAIL,
     )
 }

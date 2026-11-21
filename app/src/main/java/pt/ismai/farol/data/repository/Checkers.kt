@@ -14,6 +14,7 @@ import pt.ismai.farol.data.remote.HttpChecker
 import pt.ismai.farol.data.remote.InternetDbApi
 import pt.ismai.farol.data.remote.IpifyApi
 import pt.ismai.farol.data.remote.RdapApi
+import pt.ismai.farol.data.remote.VirusTotalApi
 import pt.ismai.farol.domain.Checks
 import pt.ismai.farol.domain.evaluators.AgeEvaluator
 import pt.ismai.farol.domain.evaluators.CertificateEvaluator
@@ -21,6 +22,7 @@ import pt.ismai.farol.domain.evaluators.EmailEvaluator
 import pt.ismai.farol.domain.evaluators.ExposureEvaluator
 import pt.ismai.farol.domain.evaluators.HeadersEvaluator
 import pt.ismai.farol.domain.evaluators.IpOwnerEvaluator
+import pt.ismai.farol.domain.evaluators.ReputationEvaluator
 import pt.ismai.farol.domain.model.Check
 import pt.ismai.farol.domain.model.CheckId
 import pt.ismai.farol.domain.model.ErrorType
@@ -48,6 +50,9 @@ internal class Checkers(
     private val ipify: IpifyApi,
     private val rdap: RdapApi,
     private val http: HttpChecker,
+    private val virusTotal: VirusTotalApi,
+    /** Empty when the build has no key: the reputation check then reports itself unavailable. */
+    private val virusTotalKey: String,
     private val texts: DataTexts,
     private val now: () -> Instant = Instant::now,
 ) {
@@ -203,6 +208,25 @@ internal class Checkers(
             ExposureEvaluator.evaluate(ports, cves)
         } catch (e: FarolException) {
             Checks.unavailable(CheckId.EXPOSURE, texts.error)
+        }
+    }
+
+    /**
+     * What the VirusTotal engines say about the domain. No key, an unknown domain (404) or an
+     * exhausted quota (429) make only this check UNAVAILABLE.
+     */
+    suspend fun reputation(domain: String): Check {
+        if (virusTotalKey.isBlank()) return Checks.unavailable(CheckId.REPUTATION, texts.noReputationKey)
+        return try {
+            val response = virusTotal.domain(virusTotalKey, domain)
+            if (response.code() == HTTP_NOT_FOUND) {
+                return Checks.unavailable(CheckId.REPUTATION, texts.unknownToVirusTotal)
+            }
+            val stats = response.bodyOrNull()?.data?.attributes?.stats
+                ?: return Checks.unavailable(CheckId.REPUTATION, texts.error)
+            ReputationEvaluator.evaluate(stats.malicious, stats.suspicious)
+        } catch (e: FarolException) {
+            Checks.unavailable(CheckId.REPUTATION, texts.error)
         }
     }
 

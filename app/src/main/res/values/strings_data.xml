@@ -10,4 +10,6 @@
     <string name="data_reason_no_dns">The DNS records could not be queried.</string>
     <string name="data_mx_with">Mail servers (MX): %1$s.</string>
     <string name="data_mx_none">No MX records: this domain does not seem to receive email.</string>
+    <string name="data_reason_no_reputation_key">This build has no VirusTotal key, so the reputation was not checked.</string>
+    <string name="data_reason_unknown_to_virustotal">VirusTotal has no record of this domain yet.</string>
 </resources>

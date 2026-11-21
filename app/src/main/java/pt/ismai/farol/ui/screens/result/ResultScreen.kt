@@ -175,7 +175,11 @@ private fun ScoreBasis(checks: List<Check>) {
             style = MaterialTheme.typography.bodyMedium,
         )
         if (cap != null) {
-            val reason = if (cap.checkId == CheckId.CERTIFICATE) R.string.result_cap_certificate else R.string.result_cap_exposure
+            val reason = when (cap.checkId) {
+                CheckId.CERTIFICATE -> R.string.result_cap_certificate
+                CheckId.REPUTATION -> R.string.result_cap_reputation
+                else -> R.string.result_cap_exposure
+            }
             Text(stringResource(reason, cap.limit), style = MaterialTheme.typography.bodyMedium)
         }
     }

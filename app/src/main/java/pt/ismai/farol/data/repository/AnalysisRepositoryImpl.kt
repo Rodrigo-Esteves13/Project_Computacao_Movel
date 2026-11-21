@@ -81,6 +81,7 @@ internal class AnalysisRepositoryImpl(
             Task(listOf(CheckId.AGE)) { listOf(checkers.age(domain)) },
             Task(listOf(CheckId.EMAIL)) { listOf(checkers.email(domain)) },
             Task(listOf(CheckId.EXPOSURE)) { listOf(checkers.exposure(ip)) },
+            Task(listOf(CheckId.REPUTATION)) { listOf(checkers.reputation(domain)) },
         )
     }
 

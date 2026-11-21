@@ -20,6 +20,11 @@ import pt.ismai.farol.data.remote.HttpChecker
 import pt.ismai.farol.data.remote.InternetDbApi
 import pt.ismai.farol.data.remote.IpifyApi
 import pt.ismai.farol.data.remote.RdapApi
+import pt.ismai.farol.data.remote.VirusTotalApi
+import pt.ismai.farol.data.remote.dto.VirusTotalAttributes
+import pt.ismai.farol.data.remote.dto.VirusTotalData
+import pt.ismai.farol.data.remote.dto.VirusTotalDomain
+import pt.ismai.farol.data.remote.dto.VirusTotalStats
 import pt.ismai.farol.data.remote.dto.DnsRecord
 import pt.ismai.farol.data.remote.dto.DnsResponse
 import pt.ismai.farol.data.remote.dto.InternetDbResponse
@@ -52,6 +57,8 @@ class AnalysisRepositoryTest {
         override val noDns = "no dns"
         override fun mxWith(servers: String) = "mx $servers"
         override val mxNone = "no mx"
+        override val noReputationKey = "no key"
+        override val unknownToVirusTotal = "unknown to vt"
     }
 
     private class FakeNetwork(var online: Boolean = true) : NetworkStatus {
@@ -83,6 +90,18 @@ class AnalysisRepositoryTest {
         val ipify = object : IpifyApi {
             override suspend fun myIp(format: String) = Response.success(IpifyResponse("203.0.113.5"))
         }
+        var virusTotalCalls = 0
+        var virusTotalKeyUsed: String? = null
+        var virusTotal: () -> Response<VirusTotalDomain> = {
+            Response.success(VirusTotalDomain(VirusTotalData(VirusTotalAttributes(VirusTotalStats()))))
+        }
+        val virusTotalApi = object : VirusTotalApi {
+            override suspend fun domain(apiKey: String, domain: String): Response<VirusTotalDomain> {
+                virusTotalCalls++
+                virusTotalKeyUsed = apiKey
+                return virusTotal()
+            }
+        }
         val rdap = object : RdapApi {
             override suspend fun domain(domain: String) = Response.success(RdapDomain())
             override suspend fun ip(ip: String): Response<RdapIp> = rdapIp()
@@ -97,7 +116,7 @@ class AnalysisRepositoryTest {
         val clock: LongArray,
     )
 
-    private fun setup(): Setup {
+    private fun setup(virusTotalKey: String = ""): Setup {
         val fakes = Fakes()
         val network = FakeNetwork()
         val clock = longArrayOf(1_000_000L)
@@ -106,7 +125,10 @@ class AnalysisRepositoryTest {
             okhttp3.Response.Builder().request(chain.request()).protocol(Protocol.HTTP_1_1)
                 .code(200).message("OK").body("".toResponseBody()).build()
         }.build()
-        val checkers = Checkers(fakes.dns, fakes.internetDbApi, fakes.ipify, fakes.rdap, HttpChecker(okHttp), Texts)
+        val checkers = Checkers(
+            fakes.dns, fakes.internetDbApi, fakes.ipify, fakes.rdap, HttpChecker(okHttp),
+            fakes.virusTotalApi, virusTotalKey, Texts,
+        )
         val store = InMemoryAnalysisStore()
         val repo = AnalysisRepositoryImpl(checkers, network, Texts, store) { clock[0] }
         return Setup(repo, store, fakes, network, clock)
@@ -181,15 +203,49 @@ class AnalysisRepositoryTest {
         assertEquals(ErrorType.RATE_LIMITED, failure { s.repo.analyze("example.com").toList() }.type)
     }
 
-    @Test fun domainAnalysis_runsAllFiveChecks() = runTest {
+    @Test fun domainAnalysis_runsAllSixChecks() = runTest {
         val s = setup()
         val last = s.repo.analyze("example.com").last()
         val ids = last.completed.map { it.id }
         assertEquals(
-            listOf(CheckId.CERTIFICATE, CheckId.HEADERS, CheckId.AGE, CheckId.EMAIL, CheckId.EXPOSURE),
+            listOf(CheckId.CERTIFICATE, CheckId.HEADERS, CheckId.AGE, CheckId.EMAIL, CheckId.EXPOSURE, CheckId.REPUTATION),
             ids,
         )
         assertEquals(CheckState.UNAVAILABLE, last.completed.first { it.id == CheckId.AGE }.state)
+    }
+
+    @Test fun withoutAKey_virusTotalIsNeverCalled() = runTest {
+        val s = setup(virusTotalKey = "")
+        val last = s.repo.analyze("example.com").last()
+        assertEquals(0, s.fakes.virusTotalCalls)
+        assertEquals(CheckState.UNAVAILABLE, last.completed.first { it.id == CheckId.REPUTATION }.state)
+    }
+
+    @Test fun withAKey_reputationCountsInTheScoreAndTheKeyIsSent() = runTest {
+        val s = setup(virusTotalKey = "abc123")
+        val last = s.repo.analyze("example.com").last()
+        assertEquals("abc123", s.fakes.virusTotalKeyUsed)
+        assertEquals(CheckState.OK, last.completed.first { it.id == CheckId.REPUTATION }.state)
+    }
+
+    @Test fun manyMaliciousDetections_failTheCheckAndCapTheScore() = runTest {
+        val s = setup(virusTotalKey = "k")
+        s.fakes.virusTotal = {
+            Response.success(VirusTotalDomain(VirusTotalData(VirusTotalAttributes(VirusTotalStats(malicious = 7)))))
+        }
+        val last = s.repo.analyze("example.com").last()
+        assertEquals(CheckState.FAIL, last.completed.first { it.id == CheckId.REPUTATION }.state)
+        assertTrue(last.score!! <= 40)
+    }
+
+    @Test fun virusTotalUnknownDomainOrQuota_onlyMakesThatCheckUnavailable() = runTest {
+        val s = setup(virusTotalKey = "k")
+        s.fakes.virusTotal = { Response.error(404, "".toResponseBody()) }
+        assertEquals(CheckState.UNAVAILABLE, s.repo.analyze("example.com").last().completed.first { it.id == CheckId.REPUTATION }.state)
+        s.fakes.virusTotal = { Response.error(429, "".toResponseBody()) }
+        val last = s.repo.analyze("example.com", force = true).last()
+        assertEquals(CheckState.UNAVAILABLE, last.completed.first { it.id == CheckId.REPUTATION }.state)
+        assertNotNull(last.score)
     }
 
     @Test fun analysisWhereNothingAnswered_isNotSaved() = runTest {

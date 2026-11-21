@@ -58,3 +58,12 @@ keyPassword=...
 ```
 
 Create the keystore with `keytool -genkeypair -v -keystore farol-release.jks -alias farol -keyalg RSA -keysize 2048 -validity 10000`. Without `keystore.properties` the release APK is built unsigned, which cannot be installed. If you use the Firebase login, add the release key's SHA-1 (`keytool -list -v -keystore farol-release.jks`) to the Android API key restriction in Google Cloud, or sign-in fails.
+
+## VirusTotal (optional)
+The reputation check asks VirusTotal whether its security engines flag a domain. It needs a free personal API key: create an account at virustotal.com, copy the key from your profile and add this line to `local.properties` (the file is ignored by git):
+
+```
+VIRUSTOTAL_API_KEY=your_key_here
+```
+
+Without the key the app works the same, and the reputation check shows as "Unavailable" and does not count toward the score. The free key is limited to 4 requests per minute and 500 per day. A key inside an APK can be extracted by anyone who gets the APK, so do not publish an APK built with your key; a public release would need a small backend that holds the key.

@@ -5,6 +5,13 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// Optional VirusTotal key, read from local.properties (never committed). Only letters and digits are kept,
+// so a malformed value cannot break the generated source. Without it the reputation check is unavailable.
+val virusTotalKey: String = Properties().let { props ->
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { props.load(it) }
+    (props.getProperty("VIRUSTOTAL_API_KEY") ?: "").filter { it.isLetterOrDigit() }
+}
+
 android {
     namespace = "pt.ismai.farol"
     compileSdk = 36
@@ -15,6 +22,7 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "1.0"
+        buildConfigField("String", "VIRUSTOTAL_API_KEY", "\"$virusTotalKey\"")
     }
 
     // Release signing comes from keystore.properties in the project root (never committed, see README).

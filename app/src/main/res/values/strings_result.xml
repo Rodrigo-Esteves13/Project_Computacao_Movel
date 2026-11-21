@@ -12,6 +12,7 @@
     <string name="lookalike_brand">The name looks like %1$s. Make sure it is the address you expect.</string>
     <string name="result_basis">Based on %1$d of %2$d checks.</string>
     <string name="result_cap_certificate">Score limited to %1$d because the certificate has a serious problem.</string>
+    <string name="result_cap_reputation">Score limited to %1$d because several security engines at VirusTotal flag this site.</string>
     <string name="result_cap_exposure">Score limited to %1$d because known vulnerabilities (CVE) were found.</string>
     <string name="result_notice">A high score does not guarantee that a site is legitimate.</string>
     <string name="result_try_again">Try again</string>
