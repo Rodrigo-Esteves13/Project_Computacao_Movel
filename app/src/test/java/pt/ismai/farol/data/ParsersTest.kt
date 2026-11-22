@@ -14,6 +14,7 @@ import pt.ismai.farol.data.remote.dto.RdapEntity
 import pt.ismai.farol.data.remote.dto.RdapEvent
 import pt.ismai.farol.data.repository.daysRemaining
 import pt.ismai.farol.data.repository.daysSinceRegistration
+import pt.ismai.farol.data.repository.daysUntilExpiry
 import pt.ismai.farol.data.repository.firstIpv4
 import pt.ismai.farol.data.repository.hasCaa
 import pt.ismai.farol.data.repository.hasIpv6
@@ -121,6 +122,13 @@ class ParsersTest {
             event("registration", "2025-01-01T00:00:00Z"),
         )
         assertEquals(10L, daysSinceRegistration(events, now))
+    }
+
+    @Test fun daysUntilExpiry_countsForwardAndGoesNegativeWhenPast() {
+        assertEquals(20L, daysUntilExpiry(listOf(event("expiration", "2025-01-31T00:00:00Z")), now))
+        assertEquals(-10L, daysUntilExpiry(listOf(event("expiration", "2025-01-01T00:00:00Z")), now))
+        assertNull(daysUntilExpiry(listOf(event("registration", "2025-01-01T00:00:00Z")), now))
+        assertNull(daysUntilExpiry(null, now))
     }
 
     @Test fun daysSinceRegistration_noEventOrInvalidDate_null() {

@@ -20,6 +20,7 @@ import pt.ismai.farol.domain.evaluators.AgeEvaluator
 import pt.ismai.farol.domain.evaluators.DnsSignalsEvaluator
 import pt.ismai.farol.domain.evaluators.CertificateEvaluator
 import pt.ismai.farol.domain.evaluators.EmailEvaluator
+import pt.ismai.farol.domain.evaluators.EmailExtras
 import pt.ismai.farol.domain.evaluators.ExposureEvaluator
 import pt.ismai.farol.domain.evaluators.HeadersEvaluator
 import pt.ismai.farol.domain.evaluators.IpOwnerEvaluator
@@ -37,6 +38,10 @@ private const val DNS_OK = 0
 private const val SPF_PREFIX = "v=spf1"
 private const val DMARC_PREFIX = "v=DMARC1"
 private const val DMARC_DNS_PREFIX = "_dmarc."
+private const val MTA_STS_DNS_PREFIX = "_mta-sts."
+private const val MTA_STS_PREFIX = "v=STSv1"
+private const val TLS_RPT_DNS_PREFIX = "_smtp._tls."
+private const val TLS_RPT_PREFIX = "v=TLSRPTv1"
 private const val MAX_MX_SHOWN = 5
 
 /** Response body; 429 -> FarolException; other HTTP errors -> null. */
@@ -116,17 +121,19 @@ internal class Checkers(
      * Final 404, 429 or no date -> UNAVAILABLE.
      */
     suspend fun age(domain: String): Check {
-        val days = try {
+        val found = try {
             hostHierarchy(domain).firstNotNullOfOrNull { host ->
-                rdap.domain(host).bodyOrNull()?.let { daysSinceRegistration(it.events, now()) }
+                rdap.domain(host).bodyOrNull()?.let { body ->
+                    daysSinceRegistration(body.events, now())?.let { it to daysUntilExpiry(body.events, now()) }
+                }
             }
         } catch (e: FarolException) {
             null
         }
-        return if (days == null) {
+        return if (found == null) {
             Checks.unavailable(CheckId.AGE, texts.noRdap)
         } else {
-            AgeEvaluator.evaluate(days)
+            AgeEvaluator.evaluate(found.first, found.second)
         }
     }
 
@@ -151,23 +158,35 @@ internal class Checkers(
             val spf = async { findTxt(hosts, SPF_PREFIX, "") }
             val dmarc = async { findTxt(hosts, DMARC_PREFIX, DMARC_DNS_PREFIX) }
             val mx = async { queryMx(domain) }
-            combineEmail(spf.await(), dmarc.await(), mx.await())
+            val mtaSts = async { hasTxt(MTA_STS_DNS_PREFIX + domain, MTA_STS_PREFIX) }
+            val tlsRpt = async { hasTxt(TLS_RPT_DNS_PREFIX + domain, TLS_RPT_PREFIX) }
+            combineEmail(spf.await(), dmarc.await(), mx.await(), EmailExtras.note(mtaSts.await(), tlsRpt.await()))
         }
     } catch (e: FarolException) {
         Checks.unavailable(CheckId.EMAIL, texts.noDns)
     }
 
-    private fun combineEmail(spf: TxtResult, dmarc: TxtResult, mx: List<String>?): Check {
+    private fun combineEmail(spf: TxtResult, dmarc: TxtResult, mx: List<String>?, extras: String?): Check {
         if (spf.value == null && spf.failed || dmarc.value == null && dmarc.failed) {
             return Checks.unavailable(CheckId.EMAIL, texts.noDns)
         }
-        val base = EmailEvaluator.evaluate(spf.value, dmarc.value)
+        val evaluated = EmailEvaluator.evaluate(spf.value, dmarc.value)
+        val base = if (extras == null) evaluated else evaluated.copy(detail = evaluated.detail + "\n" + extras)
         val note = when {
             mx == null -> return base
             mx.isEmpty() -> texts.mxNone
             else -> texts.mxWith(mx.take(MAX_MX_SHOWN).joinToString(", "))
         }
         return base.copy(detail = base.detail + "\n" + note)
+    }
+
+    /** Whether a TXT record with [prefix] exists at [name]; null if the lookup failed (nothing is claimed). */
+    private suspend fun hasTxt(name: String, prefix: String): Boolean? = try {
+        dns.resolve(name, DnsApi.TYPE_TXT).bodyOrNull()?.let { txtWithPrefix(it, prefix) != null }
+    } catch (e: IOException) {
+        null
+    } catch (e: FarolException) {
+        null
     }
 
     private class TxtResult(val value: String?, val failed: Boolean)

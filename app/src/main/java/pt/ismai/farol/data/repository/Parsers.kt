@@ -68,6 +68,7 @@ fun mxServers(response: DnsResponse?): List<String> =
         .distinct()
 
 private const val REGISTRATION_ACTION = "registration"
+private const val EXPIRATION_ACTION = "expiration"
 private const val ISO_DATE_LENGTH = 10
 private const val ROLE_REGISTRANT = "registrant"
 private const val POS_PROPERTIES = 1
@@ -80,6 +81,15 @@ fun daysSinceRegistration(events: List<RdapEvent>?, now: Instant): Long? {
         .mapNotNull { parseDate(it.eventDate) }
         .minOrNull() ?: return null
     return ChronoUnit.DAYS.between(registeredAt, now).coerceAtLeast(0)
+}
+
+/** Whole days until the "expiration" event (negative once it passed); null if missing or unreadable. */
+fun daysUntilExpiry(events: List<RdapEvent>?, now: Instant): Long? {
+    val expiresAt = events.orEmpty()
+        .filter { it.eventAction.equals(EXPIRATION_ACTION, ignoreCase = true) }
+        .mapNotNull { parseDate(it.eventDate) }
+        .maxOrNull() ?: return null
+    return ChronoUnit.DAYS.between(now, expiresAt)
 }
 
 private fun parseDate(text: String?): Instant? {

@@ -72,6 +72,7 @@ class AnalysisRepositoryTest {
         var dnsStatus = 0
         var dnsHttpCode = 200
         var dnssec = false
+        var mtaSts = false
         var ipv6 = false
         var caa = false
         var internetDb: () -> Response<InternetDbResponse> = { Response.success(InternetDbResponse(ports = listOf(443))) }
@@ -81,6 +82,8 @@ class AnalysisRepositoryTest {
             override suspend fun resolve(name: String, type: String, dnssecOk: Boolean?): Response<DnsResponse> {
                 if (dnsHttpCode != 200) return Response.error(dnsHttpCode, "".toResponseBody())
                 val answers = when {
+                    type == DnsApi.TYPE_TXT && mtaSts && name.startsWith("_mta-sts.") ->
+                        listOf(DnsRecord(name, 16, "\"v=STSv1; id=1\""))
                     type == DnsApi.TYPE_A -> listOf(DnsRecord(name, 1, "93.184.216.34"))
                     type == DnsApi.TYPE_AAAA && ipv6 -> listOf(DnsRecord(name, 28, "2606:2800::1"))
                     type == DnsApi.TYPE_CAA && caa -> listOf(DnsRecord(name, 257, "0 issue \"letsencrypt.org\""))
@@ -249,6 +252,18 @@ class AnalysisRepositoryTest {
         assertEquals("DNSSEC off, CAA not set, IPv6 no", signals.summary)
         assertEquals(CheckState.WARNING, signals.state)
         assertEquals(0, signals.weight)
+    }
+
+    @Test fun mailExtras_areInTheEmailDetail_andNeverChangeTheScore() = runTest {
+        val plain = setup()
+        val before = plain.repo.analyze("example.com").last()
+        val s = setup()
+        s.fakes.mtaSts = true
+        val last = s.repo.analyze("example.com").last()
+        val email = last.completed.first { it.id == CheckId.EMAIL }
+        assertTrue(email.detail.contains("MTA-STS: present"))
+        assertTrue(email.detail.contains("TLS-RPT: not set."))
+        assertEquals(before.score, last.score)
     }
 
     @Test fun withoutAKey_virusTotalIsNeverCalled() = runTest {

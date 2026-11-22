@@ -17,6 +17,19 @@ class AgeEvaluatorTest {
     }
 
     @Test
+    fun expiry_isInformativeOnly() {
+        val plain = AgeEvaluator.evaluate(400)
+        val soon = AgeEvaluator.evaluate(400, daysToExpiry = 10)
+        assertEquals(plain.points, soon.points)
+        assertEquals(plain.state, soon.state)
+        assertEquals(plain.summary, soon.summary)
+        assert(soon.detail.contains("expires in 10 days"))
+        assert(AgeEvaluator.evaluate(400, -5).detail.contains("expired 5 days ago"))
+        assert(AgeEvaluator.evaluate(400, 400).detail.contains("runs for another"))
+        assertEquals(plain.detail, AgeEvaluator.evaluate(400, null).detail)
+    }
+
+    @Test
     fun thresholds() {
         verify(366, CheckState.OK, 20)
         verify(365, CheckState.WARNING, 12)

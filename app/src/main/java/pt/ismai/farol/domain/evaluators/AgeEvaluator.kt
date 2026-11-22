@@ -9,6 +9,7 @@ import pt.ismai.farol.domain.model.Check
 /** Weight 20. null = no registration date (UNAVAILABLE). >365 = 20; 90..365 = 12; 30..89 = 6; <30 = 0. */
 object AgeEvaluator {
     private const val ID = CheckId.AGE
+    private const val EXPIRY_SOON_DAYS = 30L
     private const val WEIGHT = ScoreWeights.DOMAIN_AGE
 
     private const val EXPLANATION = "Scam sites often use domains registered only a few days or " +
@@ -16,9 +17,22 @@ object AgeEvaluator {
     private const val NO_DATE = "Could not find out when the domain was registered. " +
         "Some registries (such as many .pt domains) do not publish this information."
 
-    fun evaluate(daysSinceRegistration: Long?): Check {
+    /** [daysToExpiry] is informative only: it adds a line to the detail and never changes the points. */
+    fun evaluate(daysSinceRegistration: Long?, daysToExpiry: Long? = null): Check {
         val days = daysSinceRegistration ?: return Checks.unavailable(ID, NO_DATE)
         val summary = "Registered ${duration(days)} ago"
+        val check = evaluateAge(days, summary)
+        val expiry = daysToExpiry?.let(::expiryLine) ?: return check
+        return check.copy(detail = check.detail.replace("\n\n$EXPLANATION", "\n$expiry\n\n$EXPLANATION"))
+    }
+
+    private fun expiryLine(days: Long): String = when {
+        days < 0 -> "The registration expired ${duration(-days)} ago."
+        days <= EXPIRY_SOON_DAYS -> "The registration expires in ${duration(days)}."
+        else -> "The registration runs for another ${duration(days)}."
+    }
+
+    private fun evaluateAge(days: Long, summary: String): Check {
         return when {
             days > ScoreWeights.AGE_DAYS_OLD -> create(
                 CheckState.OK, WEIGHT, summary, "The domain has existed for more than a year.",
