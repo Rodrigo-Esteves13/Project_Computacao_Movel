@@ -14,6 +14,7 @@ object CheckId {
     const val EXPOSURE = "exposure"
     const val IP_OWNER = "ip_owner"
     const val REPUTATION = "reputation"
+    const val DNS_SIGNALS = "dns_signals"
 }
 
 /**

@@ -82,6 +82,7 @@ internal class AnalysisRepositoryImpl(
             Task(listOf(CheckId.EMAIL)) { listOf(checkers.email(domain)) },
             Task(listOf(CheckId.EXPOSURE)) { listOf(checkers.exposure(ip)) },
             Task(listOf(CheckId.REPUTATION)) { listOf(checkers.reputation(domain)) },
+            Task(listOf(CheckId.DNS_SIGNALS)) { listOf(checkers.dnsSignals(domain)) },
         )
     }
 

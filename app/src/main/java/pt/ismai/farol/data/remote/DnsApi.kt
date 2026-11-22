@@ -10,6 +10,8 @@ interface DnsApi {
     suspend fun resolve(
         @Query("name") name: String,
         @Query("type") type: String,
+        /** Asks for DNSSEC validation (the "do" bit); null leaves it to the resolver. */
+        @Query("do") dnssecOk: Boolean? = null,
     ): Response<DnsResponse>
 
     companion object {
@@ -17,5 +19,7 @@ interface DnsApi {
         const val TYPE_A = "A"
         const val TYPE_TXT = "TXT"
         const val TYPE_MX = "MX"
+        const val TYPE_AAAA = "AAAA"
+        const val TYPE_CAA = "CAA"
     }
 }

@@ -6,6 +6,8 @@ import com.google.gson.annotations.SerializedName
 data class DnsResponse(
     @SerializedName("Status") val status: Int = 0,
     @SerializedName("Answer") val answers: List<DnsRecord>? = null,
+    /** "AD" flag: the resolver checked the DNSSEC signatures of the whole answer. */
+    @SerializedName("AD") val authenticated: Boolean = false,
 )
 
 data class DnsRecord(

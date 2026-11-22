@@ -17,6 +17,7 @@ import pt.ismai.farol.data.remote.RdapApi
 import pt.ismai.farol.data.remote.VirusTotalApi
 import pt.ismai.farol.domain.Checks
 import pt.ismai.farol.domain.evaluators.AgeEvaluator
+import pt.ismai.farol.domain.evaluators.DnsSignalsEvaluator
 import pt.ismai.farol.domain.evaluators.CertificateEvaluator
 import pt.ismai.farol.domain.evaluators.EmailEvaluator
 import pt.ismai.farol.domain.evaluators.ExposureEvaluator
@@ -32,6 +33,7 @@ import retrofit2.Response
 private const val HTTP_NOT_FOUND = 404
 private const val HTTP_TOO_MANY_REQUESTS = 429
 private const val DNS_NXDOMAIN = 3
+private const val DNS_OK = 0
 private const val SPF_PREFIX = "v=spf1"
 private const val DMARC_PREFIX = "v=DMARC1"
 private const val DMARC_DNS_PREFIX = "_dmarc."
@@ -230,6 +232,52 @@ internal class Checkers(
         } catch (e: FarolException) {
             Checks.unavailable(CheckId.REPUTATION, texts.error)
         }
+    }
+
+    /**
+     * DNSSEC (the resolver's "AD" flag), CAA records and IPv6 support, read through dns.google.
+     * A signal that cannot be read stays unknown; a rate limit makes the whole check UNAVAILABLE.
+     */
+    suspend fun dnsSignals(domain: String): Check = try {
+        coroutineScope {
+            val signed = async { signedOrNull(domain) }
+            val ipv6 = async { ipv6OrNull(domain) }
+            val caa = async { caaOrNull(hostHierarchy(domain)) }
+            DnsSignalsEvaluator.evaluate(signed.await(), caa.await(), ipv6.await())
+        }
+    } catch (e: FarolException) {
+        Checks.unavailable(CheckId.DNS_SIGNALS, texts.noDns)
+    }
+
+    private suspend fun signedOrNull(domain: String): Boolean? = try {
+        dns.resolve(domain, DnsApi.TYPE_A, dnssecOk = true).bodyOrNull()
+            ?.takeIf { it.status == DNS_OK }?.authenticated
+    } catch (e: IOException) {
+        null
+    }
+
+    private suspend fun ipv6OrNull(domain: String): Boolean? = try {
+        dns.resolve(domain, DnsApi.TYPE_AAAA).bodyOrNull()?.let { hasIpv6(it) }
+    } catch (e: IOException) {
+        null
+    }
+
+    /** CAA applies to the host and is inherited from its parents, so the first host that has one wins. */
+    private suspend fun caaOrNull(hosts: List<String>): Boolean? = try {
+        var failed = false
+        var found = false
+        for (host in hosts) {
+            val response = dns.resolve(host, DnsApi.TYPE_CAA).bodyOrNull()
+            if (response == null) {
+                failed = true
+            } else if (hasCaa(response)) {
+                found = true
+                break
+            }
+        }
+        if (found) true else if (failed) null else false
+    } catch (e: IOException) {
+        null
     }
 
     /** Unreachable DNS is treated as having no internet; a timeout is a generic error. */

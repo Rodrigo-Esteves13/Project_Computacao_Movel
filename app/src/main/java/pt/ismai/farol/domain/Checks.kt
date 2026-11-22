@@ -16,6 +16,7 @@ object Checks {
         CheckId.EXPOSURE -> "Port exposure"
         CheckId.IP_OWNER -> "IP owner"
         CheckId.REPUTATION -> "Reputation (VirusTotal)"
+        CheckId.DNS_SIGNALS -> "DNS security"
         else -> id
     }
 

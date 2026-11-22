@@ -19,6 +19,8 @@ import pt.ismai.farol.domain.model.CheckState
 private const val DNS_TYPE_A = 1
 private const val DNS_TYPE_MX = 15
 private const val DNS_TYPE_TXT = 16
+private const val DNS_TYPE_AAAA = 28
+private const val DNS_TYPE_CAA = 257
 private const val MAX_OCTET = 255
 private const val MIN_LABELS = 2
 private val REGEX_ORG = Regex("""(?:^|,)\s*O=([^,]+)""")
@@ -35,6 +37,12 @@ private fun isIpv4(text: String): Boolean {
     val m = REGEX_IPV4.matchEntire(text) ?: return false
     return m.groupValues.drop(1).all { it.toInt() <= MAX_OCTET }
 }
+
+/** true if the answer holds at least one IPv6 address (AAAA record). */
+fun hasIpv6(response: DnsResponse?): Boolean = response?.answers.orEmpty().any { it.type == DNS_TYPE_AAAA }
+
+/** true if the answer holds at least one CAA record (which authorities may issue certificates). */
+fun hasCaa(response: DnsResponse?): Boolean = response?.answers.orEmpty().any { it.type == DNS_TYPE_CAA }
 
 /** First TXT record (quotes removed) that starts with [prefix], case-insensitive. */
 fun txtWithPrefix(response: DnsResponse?, prefix: String): String? =

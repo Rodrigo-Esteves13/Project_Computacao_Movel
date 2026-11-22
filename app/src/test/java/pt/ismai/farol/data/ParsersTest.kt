@@ -15,6 +15,8 @@ import pt.ismai.farol.data.remote.dto.RdapEvent
 import pt.ismai.farol.data.repository.daysRemaining
 import pt.ismai.farol.data.repository.daysSinceRegistration
 import pt.ismai.farol.data.repository.firstIpv4
+import pt.ismai.farol.data.repository.hasCaa
+import pt.ismai.farol.data.repository.hasIpv6
 import pt.ismai.farol.data.repository.hostHierarchy
 import pt.ismai.farol.data.repository.issuerName
 import pt.ismai.farol.data.repository.mxServers
@@ -151,5 +153,15 @@ class ParsersTest {
 
     @Test fun vcardValue_missingField_null() {
         assertNull(vcardValue(json("""["vcard",[["fn",{},"text","X"]]]"""), "org"))
+    }
+
+    @Test fun hasIpv6_andHasCaa_lookAtTheRecordType() {
+        val aaaa = DnsResponse(answers = listOf(DnsRecord("a.com", 28, "2606::1")))
+        val caa = DnsResponse(answers = listOf(DnsRecord("a.com", 257, "0 issue \"x\"")))
+        assertTrue(hasIpv6(aaaa))
+        assertTrue(hasCaa(caa))
+        assertTrue(!hasIpv6(caa))
+        assertTrue(!hasCaa(aaaa))
+        assertTrue(!hasIpv6(null) && !hasCaa(DnsResponse()))
     }
 }

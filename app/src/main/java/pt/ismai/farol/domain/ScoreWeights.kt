@@ -13,6 +13,9 @@ object ScoreWeights {
     const val EXPOSURE = 15
     const val REPUTATION = 15
 
+    /** DNS security signals are informative: they never count toward the score. */
+    const val DNS_SIGNALS = 0
+
     /** IP owner is informative: it never counts toward the score. */
     const val IP_OWNER = 0
 

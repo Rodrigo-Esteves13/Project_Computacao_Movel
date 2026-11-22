@@ -71,14 +71,22 @@ class AnalysisRepositoryTest {
         var internetDbCalls = 0
         var dnsStatus = 0
         var dnsHttpCode = 200
+        var dnssec = false
+        var ipv6 = false
+        var caa = false
         var internetDb: () -> Response<InternetDbResponse> = { Response.success(InternetDbResponse(ports = listOf(443))) }
         var rdapIp: () -> Response<RdapIp> = { Response.success(RdapIp(name = "EXAMPLE-NET", country = "PT")) }
 
         val dns = object : DnsApi {
-            override suspend fun resolve(name: String, type: String): Response<DnsResponse> {
+            override suspend fun resolve(name: String, type: String, dnssecOk: Boolean?): Response<DnsResponse> {
                 if (dnsHttpCode != 200) return Response.error(dnsHttpCode, "".toResponseBody())
-                val answers = if (type == DnsApi.TYPE_A) listOf(DnsRecord(name, 1, "93.184.216.34")) else null
-                return Response.success(DnsResponse(status = dnsStatus, answers = answers))
+                val answers = when {
+                    type == DnsApi.TYPE_A -> listOf(DnsRecord(name, 1, "93.184.216.34"))
+                    type == DnsApi.TYPE_AAAA && ipv6 -> listOf(DnsRecord(name, 28, "2606:2800::1"))
+                    type == DnsApi.TYPE_CAA && caa -> listOf(DnsRecord(name, 257, "0 issue \"letsencrypt.org\""))
+                    else -> null
+                }
+                return Response.success(DnsResponse(status = dnsStatus, answers = answers, authenticated = dnssec && dnssecOk == true))
             }
         }
         val internetDbApi = object : InternetDbApi {
@@ -203,15 +211,40 @@ class AnalysisRepositoryTest {
         assertEquals(ErrorType.RATE_LIMITED, failure { s.repo.analyze("example.com").toList() }.type)
     }
 
-    @Test fun domainAnalysis_runsAllSixChecks() = runTest {
+    @Test fun domainAnalysis_runsAllSevenChecks() = runTest {
         val s = setup()
         val last = s.repo.analyze("example.com").last()
         val ids = last.completed.map { it.id }
         assertEquals(
-            listOf(CheckId.CERTIFICATE, CheckId.HEADERS, CheckId.AGE, CheckId.EMAIL, CheckId.EXPOSURE, CheckId.REPUTATION),
+            listOf(
+                CheckId.CERTIFICATE, CheckId.HEADERS, CheckId.AGE, CheckId.EMAIL, CheckId.EXPOSURE,
+                CheckId.REPUTATION, CheckId.DNS_SIGNALS,
+            ),
             ids,
         )
         assertEquals(CheckState.UNAVAILABLE, last.completed.first { it.id == CheckId.AGE }.state)
+    }
+
+    @Test fun dnsSignals_areReadAndNeverChangeTheScore() = runTest {
+        val plain = setup()
+        val withoutSignals = plain.repo.analyze("example.com").last()
+        val s = setup()
+        s.fakes.dnssec = true
+        s.fakes.ipv6 = true
+        s.fakes.caa = true
+        val last = s.repo.analyze("example.com").last()
+        val signals = last.completed.first { it.id == CheckId.DNS_SIGNALS }
+        assertEquals("DNSSEC on, CAA set, IPv6 yes", signals.summary)
+        assertEquals(CheckState.OK, signals.state)
+        assertEquals(withoutSignals.score, last.score)
+    }
+
+    @Test fun dnsSignalsOff_areAWarningButStillNoScoreChange() = runTest {
+        val last = setup().repo.analyze("example.com").last()
+        val signals = last.completed.first { it.id == CheckId.DNS_SIGNALS }
+        assertEquals("DNSSEC off, CAA not set, IPv6 no", signals.summary)
+        assertEquals(CheckState.WARNING, signals.state)
+        assertEquals(0, signals.weight)
     }
 
     @Test fun withoutAKey_virusTotalIsNeverCalled() = runTest {
