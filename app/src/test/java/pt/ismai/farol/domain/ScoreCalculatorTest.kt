@@ -38,7 +38,7 @@ class ScoreCalculatorTest {
             AgeEvaluator.evaluate(4000),
             HeadersEvaluator.evaluate(
                 mapOf(
-                    "strict-transport-security" to "max-age=1",
+                    "strict-transport-security" to "max-age=31536000",
                     "content-security-policy" to "default-src 'self'",
                     "x-content-type-options" to "nosniff",
                     "x-frame-options" to "DENY",

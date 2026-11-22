@@ -47,6 +47,9 @@ object ScoreWeights {
 
     // Security headers (they add up to 20).
     const val HEADER_HSTS = 6
+    const val HEADER_HSTS_WEAK = 3
+    /** HSTS shorter than 180 days (in seconds) protects too briefly to count in full. */
+    const val HSTS_MIN_MAX_AGE_S = 15_552_000L
     const val HEADER_CSP = 5
     const val HEADER_CONTENT_TYPE = 3
     const val HEADER_FRAME = 3
@@ -58,6 +61,11 @@ object ScoreWeights {
     const val EMAIL_SPF = 8
     const val EMAIL_DMARC = 6
     const val EMAIL_DMARC_POLICY = 6
+    /** SPF ending in ?all (neutral) says nothing about unknown senders: half the points. */
+    const val EMAIL_SPF_NEUTRAL = 4
+    /** A strong DMARC policy applied to only part of the mail (pct below 100): half the points. */
+    const val EMAIL_DMARC_POLICY_PARTIAL = 3
+    const val DMARC_FULL_PCT = 100
 
     // Exposure: starts at the maximum and loses points for each port beyond the web ports.
     const val EXPOSURE_PORT_PENALTY = 3

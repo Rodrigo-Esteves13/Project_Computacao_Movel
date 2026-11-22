@@ -24,6 +24,35 @@ class HeadersEvaluatorTest {
     }
 
     @Test
+    fun shortHstsLifetimeIsWeakAndGetsHalf() {
+        val v = HeadersEvaluator.evaluate(mapOf("strict-transport-security" to "max-age=300", csp, xcto, xfo, ref))
+        assertEquals(17, v.points)
+        assertTrue(v.detail.contains("Present but weak"))
+        assertEquals("5 of 5 protections active", v.summary)
+    }
+
+    @Test
+    fun hstsWithMaxAgeZeroCountsAsMissing() {
+        val v = HeadersEvaluator.evaluate(mapOf("strict-transport-security" to "max-age=0", csp, xcto, xfo, ref))
+        assertEquals(14, v.points)
+        assertEquals("4 of 5 protections active", v.summary)
+        assertTrue(v.detail.contains("Missing"))
+    }
+
+    @Test
+    fun hstsAtSixMonthsOrMoreIsFull() {
+        val v = HeadersEvaluator.evaluate(mapOf("strict-transport-security" to "max-age=15552000; includeSubDomains", csp, xcto, xfo, ref))
+        assertEquals(20, v.points)
+        assertFalse(v.detail.contains("weak"))
+    }
+
+    @Test
+    fun hstsWithoutAMaxAgeIsWeak() {
+        val v = HeadersEvaluator.evaluate(mapOf("strict-transport-security" to "includeSubDomains", csp, xcto, xfo, ref))
+        assertEquals(17, v.points)
+    }
+
+    @Test
     fun noneGives0Fail() {
         val v = HeadersEvaluator.evaluate(emptyMap())
         assertEquals(0, v.points)
