@@ -11,6 +11,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import pt.ismai.farol.domain.model.CheckState
@@ -20,11 +22,16 @@ import pt.ismai.farol.ui.theme.FarolTheme
 /** A single Composable draws any check. */
 @Composable
 fun CheckCard(v: Check, onClick: (() -> Unit)?, modifier: Modifier = Modifier) {
-    Card(modifier.fillMaxWidth().then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)) {
+    // One TalkBack stop per card: state, title and summary are read together.
+    Card(
+        modifier.fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .semantics(mergeDescendants = true) {},
+    ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(16.dp)) {
             StateIcon(v.state)
             Column(Modifier.padding(start = 12.dp)) {
-                Text(v.title, style = MaterialTheme.typography.titleMedium)
+                Text(v.title, modifier = Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium)
                 Text(v.summary, style = MaterialTheme.typography.bodyMedium)
             }
         }

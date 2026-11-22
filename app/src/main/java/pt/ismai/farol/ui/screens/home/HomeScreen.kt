@@ -29,6 +29,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import pt.ismai.farol.R
 import pt.ismai.farol.domain.model.AnalysisSummary
@@ -100,7 +102,7 @@ private fun HomeContent(
             }
         }
         items(shortcuts.chunked(2)) { line -> ShortcutRow(line) }
-        item { Text(stringResource(R.string.home_latest), style = MaterialTheme.typography.titleMedium) }
+        item { Text(stringResource(R.string.home_latest), Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium) }
         if (latest.isEmpty()) {
             item {
                 EmptyState(Icons.Filled.History, stringResource(R.string.home_no_analyses), Modifier.height(EMPTY_HEIGHT))
@@ -114,7 +116,7 @@ private fun HomeContent(
 @Composable
 private fun Header() {
     Column {
-        Text(stringResource(R.string.app_name), style = MaterialTheme.typography.headlineLarge)
+        Text(stringResource(R.string.app_name), Modifier.semantics { heading() }, style = MaterialTheme.typography.headlineLarge)
         Text(stringResource(R.string.home_subtitle), style = MaterialTheme.typography.bodyLarge)
     }
 }

@@ -11,6 +11,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import pt.ismai.farol.R
 import pt.ismai.farol.domain.model.CheckState
@@ -29,7 +32,11 @@ fun stateForScore(score: Int): CheckState = when {
 @Composable
 fun ScoreGauge(score: Int?, modifier: Modifier = Modifier, analyzing: Boolean = false) {
     val state = score?.let(::stateForScore) ?: CheckState.UNAVAILABLE
-    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+    // Announced when it changes, so the score is read as soon as the analysis finishes.
+    Column(
+        modifier.semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         Text(
             score?.toString() ?: "—",
             color = state.color(),

@@ -121,4 +121,5 @@ private fun AnalysisResult.asProgress() = AnalysisProgress(
     finished = true,
     fromCache = false,
     analysisId = id,
+    date = date,
 )

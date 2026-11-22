@@ -37,6 +37,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.annotation.StringRes
 import pt.ismai.farol.R
@@ -52,6 +54,7 @@ fun AuthScreen(viewModel: AuthViewModel) {
         ) {
             Text(
                 stringResource(if (ui.registering) R.string.auth_title_register else R.string.auth_title_sign_in),
+                modifier = Modifier.semantics { heading() },
                 style = MaterialTheme.typography.headlineMedium,
             )
             Text(stringResource(R.string.auth_subtitle), style = MaterialTheme.typography.bodyMedium)

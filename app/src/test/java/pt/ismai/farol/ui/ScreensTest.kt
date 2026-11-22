@@ -1,6 +1,10 @@
 package pt.ismai.farol.ui
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createComposeRule
@@ -108,5 +112,15 @@ class ScreensTest {
         compose.onNodeWithText("SSL certificate").assertIsDisplayed()
         compose.onNodeWithText("Valid, expires in 90 days").performClick()
         assertEquals(1, clicks)
+    }
+
+    @Test fun checkCard_isOneTalkBackStop_withTheTitleAsHeading() {
+        val check = Check("certificate", "SSL certificate", CheckState.OK, "Valid, expires in 90 days", "", 25, 25)
+        compose.setContent { FarolTheme { CheckCard(check, onClick = null) } }
+        // Merged: state icon, title and summary are read as a single node.
+        compose.onAllNodes(hasText("Valid, expires in 90 days")).assertCountEquals(1)
+        compose.onNode(hasText("SSL certificate") and hasText("Valid, expires in 90 days")).assertIsDisplayed()
+        compose.onNode(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading), useUnmergedTree = true)
+            .assertTextContains("SSL certificate")
     }
 }

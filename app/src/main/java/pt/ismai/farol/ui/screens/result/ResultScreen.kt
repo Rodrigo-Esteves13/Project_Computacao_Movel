@@ -32,6 +32,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -50,6 +52,8 @@ import pt.ismai.farol.ui.components.LoadingCard
 import pt.ismai.farol.ui.components.CheckCard
 import pt.ismai.farol.ui.components.ScoreGauge
 import pt.ismai.farol.ui.screens.common.BackTopBar
+import pt.ismai.farol.ui.screens.common.formatDate
+import pt.ismai.farol.util.Connectivity
 
 private val SPACING = 16.dp
 
@@ -64,6 +68,8 @@ fun ResultScreen(
     val favorite by viewModel.isFavorite.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val title = stringResource(R.string.result_share)
+    // Checked again whenever the state changes, so the banner follows a lost or regained connection.
+    val offline = remember(state) { !Connectivity(context).hasInternet() }
     Scaffold(
         topBar = {
             BackTopBar(target, onBack) {
@@ -75,7 +81,7 @@ fun ResultScreen(
             }
         },
     ) { padding ->
-        ResultContent(state, viewModel::reanalyze, viewModel::retry, onDetail, Modifier.padding(padding))
+        ResultContent(state, offline, viewModel::reanalyze, viewModel::retry, onDetail, Modifier.padding(padding))
     }
 }
 
@@ -97,6 +103,7 @@ private fun RowScope.ResultActions(favorite: Boolean, onToggle: () -> Unit, onSh
 @Composable
 private fun ResultContent(
     state: ResultUiState,
+    offline: Boolean,
     onReanalyze: () -> Unit,
     onRetry: () -> Unit,
     onDetail: (Long, String) -> Unit,
@@ -105,13 +112,14 @@ private fun ResultContent(
     when (state) {
         ResultUiState.Loading -> Box(modifier.fillMaxSize(), Alignment.Center) { CircularProgressIndicator() }
         is ResultUiState.Error -> ErrorContent(state.message, onRetry, modifier)
-        is ResultUiState.Success -> ResultList(state.progress, onReanalyze, onDetail, modifier)
+        is ResultUiState.Success -> ResultList(state.progress, offline, onReanalyze, onDetail, modifier)
     }
 }
 
 @Composable
 private fun ResultList(
     progress: AnalysisProgress,
+    offline: Boolean,
     onReanalyze: () -> Unit,
     onDetail: (Long, String) -> Unit,
     modifier: Modifier = Modifier,
@@ -127,18 +135,25 @@ private fun ResultList(
         item { ScoreGauge(progress.score, Modifier.fillMaxWidth(), analyzing = !progress.finished) }
         lookalike?.let { warning -> item { LookalikeCard(warning) } }
         if (progress.finished && progress.score != null) item { ScoreBasis(progress.completed) }
-        if (progress.fromCache) item { Text(stringResource(R.string.result_cache), style = MaterialTheme.typography.bodyMedium) }
+        progress.date?.let { date -> item { SavedDataNote(date, offline) } }
         items(progress.completed, key = { it.id }) { v ->
             CheckCard(v, onClick = progress.analysisId?.let { id -> { onDetail(id, v.id) } })
         }
         items(progress.pending, key = { it }) { LoadingCard(Checks.title(it)) }
         item { Text(stringResource(R.string.result_notice), style = MaterialTheme.typography.bodySmall) }
         item {
-            OutlinedButton(onClick = onReanalyze, enabled = progress.finished, modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(onClick = onReanalyze, enabled = progress.finished && !offline, modifier = Modifier.fillMaxWidth()) {
                 Text(stringResource(R.string.result_reanalyze))
             }
         }
     }
+}
+
+/** Saved or cached data: says when it was collected, and that it cannot be refreshed while offline. */
+@Composable
+private fun SavedDataNote(date: Long, offline: Boolean) {
+    val text = if (offline) R.string.result_saved_offline else R.string.result_saved
+    Text(stringResource(text, formatDate(date)), style = MaterialTheme.typography.bodyMedium)
 }
 
 /** A hint, not a verdict: the name may be imitating a known one. It does not change the score. */
@@ -156,6 +171,7 @@ private fun LookalikeCard(warning: LookalikeWarning) {
         Column(Modifier.padding(SPACING), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
                 stringResource(R.string.lookalike_title),
+                modifier = Modifier.semantics { heading() },
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onErrorContainer,
             )

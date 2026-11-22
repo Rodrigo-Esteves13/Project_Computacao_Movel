@@ -58,6 +58,8 @@ data class AnalysisProgress(
     val fromCache: Boolean,
     /** id in the DB, only when [finished] */
     val analysisId: Long?,
+    /** When the data was collected, only for a saved or cached analysis (null for a fresh one). */
+    val date: Long? = null,
 )
 
 /** History row. */

@@ -4,7 +4,9 @@
     <string name="result_favorite_remove">Remove from favorites</string>
     <string name="result_share">Share report</string>
     <string name="result_reanalyze">Re-analyze</string>
-    <string name="result_cache">Cached result (analysis less than 10 minutes old). Re-analyze to get fresh data.</string>
+    <string name="result_saved">Data from %1$s. Re-analyze to get fresh data.</string>
+    <string name="result_saved_offline">You are offline. Showing saved data from %1$s.</string>
+    <string name="check_pending">Analyzing</string>
     <string name="share_no_target">Farol could not find a domain or IP address in the shared text.</string>
     <string name="lookalike_title">This address may be imitating another</string>
     <string name="lookalike_mixed">The name mixes letters from different alphabets and appears as %1$s. Attackers do this so a fake looks like a real site.</string>

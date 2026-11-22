@@ -175,6 +175,8 @@ class AnalysisRepositoryTest {
         val cached = s.repo.analyze("8.8.8.8").toList()
         assertEquals(1, cached.size)
         assertTrue(cached.single().fromCache)
+        // The date of the original analysis travels with the cached data (shown as "Data from ...").
+        assertEquals(s.store.analyses.first().single().date, cached.single().date)
         assertEquals(callsAfterFirst, s.fakes.internetDbCalls)
     }
 
@@ -182,7 +184,9 @@ class AnalysisRepositoryTest {
         val s = setup()
         s.repo.analyze("8.8.8.8").last()
         s.clock[0] += 11 * 60 * 1000L
-        assertFalse(s.repo.analyze("8.8.8.8").last().fromCache)
+        val fresh = s.repo.analyze("8.8.8.8").last()
+        assertFalse(fresh.fromCache)
+        assertEquals(null, fresh.date)
         assertFalse(s.repo.analyze("8.8.8.8", force = true).last().fromCache)
         assertEquals(3, s.store.analyses.first().size)
     }

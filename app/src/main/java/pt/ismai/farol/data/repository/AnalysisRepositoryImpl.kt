@@ -70,6 +70,7 @@ internal class AnalysisRepositoryImpl(
         return AnalysisProgress(
             target = r.target, type = r.type, completed = r.checks, pending = emptyList(),
             score = r.score, finished = true, fromCache = true, analysisId = r.id,
+            date = r.date,
         )
     }
 
