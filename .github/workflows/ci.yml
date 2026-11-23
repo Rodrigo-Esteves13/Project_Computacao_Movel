@@ -33,10 +33,22 @@ jobs:
       - name: Make the Gradle wrapper executable
         run: chmod +x gradlew
 
+      # Robolectric downloads the Android framework jar it simulates (android-all) from Maven
+      # Central into ~/.m2. Caching it keeps the tests from depending on that download.
+      - name: Cache the Robolectric Android jars
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: robolectric-${{ hashFiles('gradle/libs.versions.toml', 'app/build.gradle.kts') }}
+
       # No google-services.json here on purpose: the app builds without Firebase, and
       # the file with the API key must never be in the repository.
+      # The first attempt may fail only because the Robolectric download failed (network);
+      # a second attempt reuses what was already downloaded. A real test failure fails both.
       - name: Unit tests and debug build
-        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug
+        run: |
+          ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug \
+            || ./gradlew --no-daemon :app:testDebugUnitTest :app:assembleDebug
 
       - name: Upload test report on failure
         if: failure()
