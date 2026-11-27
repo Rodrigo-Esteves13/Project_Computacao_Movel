@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import pt.ismai.farol.AppContainer
 import pt.ismai.farol.R
 import pt.ismai.farol.domain.AnalysisRepository
 import pt.ismai.farol.domain.model.AnalysisProgress
@@ -107,8 +106,8 @@ class ResultViewModel(
         private const val TAG = "Farol"
         private const val SHARING_TIMEOUT_MS = 5_000L
 
-        fun factory(container: AppContainer, target: String, analysisId: Long): ViewModelProvider.Factory =
-            viewModelFactory { initializer { ResultViewModel(container.analysisRepository, target, analysisId) } }
+        fun factory(repository: AnalysisRepository, target: String, analysisId: Long): ViewModelProvider.Factory =
+            viewModelFactory { initializer { ResultViewModel(repository, target, analysisId) } }
     }
 }
 

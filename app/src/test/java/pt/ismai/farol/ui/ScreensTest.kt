@@ -66,7 +66,8 @@ class ScreensTest {
 
     @Test fun authScreen_emptyForm_showsBothFieldErrors() {
         val auth = FakeAuth()
-        compose.setContent { FarolTheme { AuthScreen(AuthViewModel(auth)) } }
+        val viewModel = AuthViewModel(auth) // outside the composable: it must not be rebuilt on recomposition
+        compose.setContent { FarolTheme { AuthScreen(viewModel) } }
         compose.onNode(signInButton()).performClick()
         compose.onNodeWithText("Enter a valid email address.").assertIsDisplayed()
         compose.onNodeWithText("The password needs at least 6 characters.").assertIsDisplayed()
@@ -75,7 +76,8 @@ class ScreensTest {
 
     @Test fun authScreen_validForm_signsIn() {
         val auth = FakeAuth()
-        compose.setContent { FarolTheme { AuthScreen(AuthViewModel(auth)) } }
+        val viewModel = AuthViewModel(auth) // outside the composable: it must not be rebuilt on recomposition
+        compose.setContent { FarolTheme { AuthScreen(viewModel) } }
         compose.onNodeWithText("Email").performTextInput("a@b.com")
         compose.onNodeWithText("Password").performTextInput("secret123")
         compose.onNode(signInButton()).performClick()
@@ -85,7 +87,8 @@ class ScreensTest {
     }
 
     @Test fun authScreen_switchToRegister_changesTheTitle() {
-        compose.setContent { FarolTheme { AuthScreen(AuthViewModel(FakeAuth())) } }
+        val viewModel = AuthViewModel(FakeAuth()) // outside the composable: it must not be rebuilt on recomposition
+        compose.setContent { FarolTheme { AuthScreen(viewModel) } }
         compose.onNodeWithText("No account yet? Create one").performClick()
         compose.onNodeWithText("Already have an account? Sign in").assertIsDisplayed()
         assertTrue(compose.onAllCreateAccountNodes() >= 2) // title and button

@@ -122,9 +122,20 @@ class ScoreCalculatorTest {
         val both = listOf(
             CertificateEvaluator.evaluate(false, null, null, null),
             ExposureEvaluator.evaluate(listOf(443), listOf("CVE-2020-0001")),
+            full(CheckId.AGE, 20), full(CheckId.HEADERS, 20), full(CheckId.EMAIL, 20),
         )
         assertEquals(40, ScoreCalculator.cap(both)?.limit)
         assertNull(ScoreCalculator.cap(listOf(full(CheckId.CERTIFICATE, 25))))
+    }
+
+    @Test
+    fun noCapIsReportedWhenTheScoreIsAlreadyBelowTheLimit() {
+        // raw = 20 / 45 = 44 is above 40, so the cap applies; raw = 0 / 25 is not.
+        val above = listOf(CertificateEvaluator.evaluate(false, null, null, null), full(CheckId.AGE, 20))
+        assertEquals(40, ScoreCalculator.cap(above)?.limit)
+        val below = listOf(CertificateEvaluator.evaluate(false, null, null, null))
+        assertEquals(0, ScoreCalculator.calculate(below))
+        assertNull(ScoreCalculator.cap(below))
     }
 
     @Test

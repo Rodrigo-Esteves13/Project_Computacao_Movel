@@ -12,8 +12,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Wifi
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -26,7 +24,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.semantics.heading
@@ -44,31 +41,20 @@ import pt.ismai.farol.domain.model.CheckState
 private val SPACING = 16.dp
 private val EMPTY_HEIGHT = 220.dp
 
-private class Shortcut(val icon: ImageVector, val text: Int, val onClick: () -> Unit)
-
 @Composable
 fun HomeScreen(
     viewModel: HomeViewModel,
     onAnalyze: (String) -> Unit,
     onOpenAnalysis: (analysisId: Long, target: String) -> Unit,
     onNetwork: () -> Unit,
-    onFavorites: () -> Unit,
-    onHistory: () -> Unit,
-    onSettings: () -> Unit,
 ) {
     val ui by viewModel.ui.collectAsStateWithLifecycle()
     val latest by viewModel.latest.collectAsStateWithLifecycle()
-    val shortcuts = listOf(
-        Shortcut(Icons.Filled.Wifi, R.string.home_shortcut_network, onNetwork),
-        Shortcut(Icons.Filled.Star, R.string.home_shortcut_favorites, onFavorites),
-        Shortcut(Icons.Filled.History, R.string.home_shortcut_history, onHistory),
-        Shortcut(Icons.Filled.Settings, R.string.home_shortcut_settings, onSettings),
-    )
     Scaffold { padding ->
         HomeContent(
             ui = ui,
             latest = latest,
-            shortcuts = shortcuts,
+            onNetwork = onNetwork,
             onTextChange = viewModel::changeText,
             onAnalyze = { viewModel.validate()?.let(onAnalyze) },
             onOpenAnalysis = onOpenAnalysis,
@@ -81,7 +67,7 @@ fun HomeScreen(
 private fun HomeContent(
     ui: HomeUi,
     latest: List<AnalysisSummary>,
-    shortcuts: List<Shortcut>,
+    onNetwork: () -> Unit,
     onTextChange: (String) -> Unit,
     onAnalyze: () -> Unit,
     onOpenAnalysis: (Long, String) -> Unit,
@@ -101,7 +87,7 @@ private fun HomeContent(
                 Text(stringResource(R.string.home_analyze))
             }
         }
-        items(shortcuts.chunked(2)) { line -> ShortcutRow(line) }
+        item { NetworkCard(onNetwork) }
         item { Text(stringResource(R.string.home_latest), Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium) }
         if (latest.isEmpty()) {
             item {
@@ -121,19 +107,17 @@ private fun Header() {
     }
 }
 
+/** The only shortcut left here: the other screens are in the bottom bar. */
 @Composable
-private fun ShortcutRow(shortcuts: List<Shortcut>) {
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(SPACING)) {
-        shortcuts.forEach { ShortcutCard(it, Modifier.weight(1f)) }
-    }
-}
-
-@Composable
-private fun ShortcutCard(shortcut: Shortcut, modifier: Modifier = Modifier) {
-    OutlinedCard(modifier.clickable(onClick = shortcut.onClick)) {
+private fun NetworkCard(onClick: () -> Unit) {
+    OutlinedCard(Modifier.fillMaxWidth().clickable(onClick = onClick)) {
         Row(Modifier.padding(SPACING), verticalAlignment = Alignment.CenterVertically) {
-            Icon(shortcut.icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            Text(stringResource(shortcut.text), Modifier.padding(start = 12.dp), style = MaterialTheme.typography.titleSmall)
+            Icon(Icons.Filled.Wifi, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+            Text(
+                stringResource(R.string.home_shortcut_network),
+                Modifier.padding(start = 12.dp),
+                style = MaterialTheme.typography.titleSmall,
+            )
         }
     }
 }

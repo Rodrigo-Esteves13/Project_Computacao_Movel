@@ -19,16 +19,30 @@ data class ScoreCoverage(val available: Int, val total: Int)
  */
 object ScoreCalculator {
     fun calculate(checks: List<Check>): Int? {
+        val raw = rawScore(checks) ?: return null
+        return minOf(raw, lowestCap(checks)?.limit ?: ScoreWeights.SCALE)
+    }
+
+    /** The score before any cap; null if no check with a weight answered. */
+    private fun rawScore(checks: List<Check>): Int? {
         val counted = checks.filter { it.state != CheckState.UNAVAILABLE && it.weight > 0 }
         val weights = counted.sumOf { it.weight }
         if (weights <= 0) return null
         val points = counted.sumOf { it.points.coerceIn(0, it.weight) }
-        val raw = (points.toDouble() / weights * ScoreWeights.SCALE).roundToInt()
-        return minOf(raw, cap(checks)?.limit ?: ScoreWeights.SCALE)
+        return (points.toDouble() / weights * ScoreWeights.SCALE).roundToInt()
     }
 
-    /** The lowest cap that applies to [checks], or null if none does. */
-    fun cap(checks: List<Check>): ScoreCap? = CAPS
+    /**
+     * The cap that actually lowered the score of [checks], or null. A failed check whose limit is
+     * not below the score changes nothing, so there is nothing to explain to the user.
+     */
+    fun cap(checks: List<Check>): ScoreCap? {
+        val raw = rawScore(checks) ?: return null
+        return lowestCap(checks)?.takeIf { raw > it.limit }
+    }
+
+    /** The lowest limit among the failed checks that can cap a score. */
+    private fun lowestCap(checks: List<Check>): ScoreCap? = CAPS
         .filter { (id, _) -> checks.any { it.id == id && it.state == CheckState.FAIL } }
         .minByOrNull { it.second }
         ?.let { (id, limit) -> ScoreCap(id, limit) }

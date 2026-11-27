@@ -1,5 +1,10 @@
 package pt.ismai.farol.ui.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -14,9 +19,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import pt.ismai.farol.AppContainer
+import pt.ismai.farol.domain.AnalysisRepository
 import pt.ismai.farol.domain.AuthSession
 import pt.ismai.farol.ui.screens.auth.AuthScreen
 import pt.ismai.farol.ui.screens.auth.AuthViewModel
@@ -31,9 +38,12 @@ import pt.ismai.farol.ui.screens.network.NetworkScreen
 import pt.ismai.farol.ui.screens.result.ResultScreen
 import pt.ismai.farol.ui.screens.result.ResultViewModel
 
-/** Decides between the sign-in screen and the app from the account session; draws nothing until it is known. */
+/**
+ * The scaffold of the app: the bottom bar and, above it, the current screen. It also decides between
+ * the sign-in screen and the app from the account session; draws nothing until it is known.
+ */
 @Composable
-fun FarolNavHost(
+fun MainProgram(
     container: AppContainer,
     modifier: Modifier = Modifier,
     /** A target received from the share sheet; opened as soon as the user is past the sign-in screen. */
@@ -42,31 +52,48 @@ fun FarolNavHost(
 ) {
     val session by container.auth.session.collectAsStateWithLifecycle(AuthSession.Loading)
     if (session is AuthSession.Loading) return
-    val nav = rememberNavController()
+    val navController = rememberNavController()
     val start = remember { if (session is AuthSession.SignedOut) Routes.AUTH else Routes.HOME }
     // Signing out (or in) replaces the whole back stack, so back never reaches the previous account's screens.
     LaunchedEffect(session) {
-        val onAuth = nav.currentDestination?.route == Routes.AUTH
+        val onAuth = navController.currentDestination?.route == Routes.AUTH
         when {
-            session is AuthSession.SignedOut && !onAuth -> nav.navigate(Routes.AUTH) { popUpTo(0) }
-            session !is AuthSession.SignedOut && onAuth -> nav.navigate(Routes.HOME) { popUpTo(0) }
+            session is AuthSession.SignedOut && !onAuth -> navController.leaveAccount()
+            session !is AuthSession.SignedOut && onAuth -> navController.navigate(Routes.HOME) { popUpTo(0) }
         }
     }
     // Declared after the gate above, so after a sign-in the home screen is under the shared result.
     LaunchedEffect(sharedTarget, session) {
         if (sharedTarget != null && session !is AuthSession.SignedOut) {
-            nav.navigate(Routes.result(sharedTarget)) { launchSingleTop = true }
+            navController.navigate(Routes.result(sharedTarget)) { launchSingleTop = true }
             onSharedHandled()
         }
     }
-    NavHost(nav, startDestination = start, modifier = modifier) {
+    val entry by navController.currentBackStackEntryAsState()
+    val showBar = Destination.toList.any { it.route == entry?.destination?.route }
+    Scaffold(
+        modifier = modifier,
+        // Each screen has its own Scaffold, which takes care of the system bars.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        bottomBar = { if (showBar) BottomNavigationBar(navController, appItems = Destination.toList) },
+    ) { padding ->
+        Box(Modifier.padding(padding).consumeWindowInsets(padding)) {
+            AppNavigation(navController, container, start)
+        }
+    }
+}
+
+/** One composable for each route. */
+@Composable
+fun AppNavigation(navController: NavHostController, container: AppContainer, startDestination: String) {
+    NavHost(navController, startDestination = startDestination) {
         composable(Routes.AUTH) {
             AuthScreen(viewModel(factory = AuthViewModel.factory(container)))
         }
-        home(nav, container)
-        result(nav, container)
-        detail(nav, container)
-        secondary(nav, container)
+        home(navController, container)
+        result(navController, container.analysisRepository)
+        detail(navController, container)
+        secondary(navController, container)
     }
 }
 
@@ -78,14 +105,11 @@ private fun NavGraphBuilder.home(nav: NavHostController, container: AppContainer
             onAnalyze = { nav.goTo(entry, Routes.result(it)) },
             onOpenAnalysis = { id, target -> nav.goTo(entry, Routes.result(target, id)) },
             onNetwork = { nav.goTo(entry, Routes.NETWORK) },
-            onFavorites = { nav.goTo(entry, Routes.FAVORITES) },
-            onHistory = { nav.goTo(entry, Routes.HISTORY) },
-            onSettings = { nav.goTo(entry, Routes.SETTINGS) },
         )
     }
 }
 
-private fun NavGraphBuilder.result(nav: NavHostController, container: AppContainer) {
+internal fun NavGraphBuilder.result(nav: NavHostController, repository: AnalysisRepository) {
     composable(
         Routes.RESULT,
         arguments = listOf(
@@ -97,8 +121,11 @@ private fun NavGraphBuilder.result(nav: NavHostController, container: AppContain
         ),
     ) { entry ->
         val target = entry.arguments?.getString(Routes.ARG_TARGET).orEmpty()
+        // Keyed by what is shown: opening another target over a result (a shared link) reuses this
+        // back stack entry, and without the key it would keep the previous target's ViewModel.
         val vm: ResultViewModel = viewModel(
-            factory = ResultViewModel.factory(container, target, entry.analysisId()),
+            key = "$target/${entry.analysisId()}",
+            factory = ResultViewModel.factory(repository, target, entry.analysisId()),
         )
         ResultScreen(
             viewModel = vm,

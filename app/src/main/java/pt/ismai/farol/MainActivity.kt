@@ -15,7 +15,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import pt.ismai.farol.domain.SharedText
 import pt.ismai.farol.domain.model.ThemePref
-import pt.ismai.farol.ui.navigation.FarolNavHost
+import pt.ismai.farol.ui.navigation.MainProgram
 import pt.ismai.farol.ui.theme.FarolTheme
 import pt.ismai.farol.ui.theme.isDark
 
@@ -40,7 +40,7 @@ class MainActivity : ComponentActivity() {
                     onDispose {}
                 }
                 FarolTheme(preferred) {
-                    FarolNavHost(container, sharedTarget = sharedTarget, onSharedHandled = { sharedTarget = null })
+                    MainProgram(container, sharedTarget = sharedTarget, onSharedHandled = { sharedTarget = null })
                 }
             }
         }
